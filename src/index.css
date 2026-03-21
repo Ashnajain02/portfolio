@@ -1174,11 +1174,14 @@ html, body, #root {
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
-  .desktop-area { padding: 50px 15px 90px; }
+  .desktop-area { padding: 50px 10px 90px; }
   .dock-icon { width: 40px; height: 40px; font-size: 18px; }
-  .terminal-widget { width: 280px; }
-  .resume-viewer { width: 320px; max-height: 360px; }
-  .browser-widget { width: 90vw; height: 300px; }
+
+  .terminal-widget { width: calc(100vw - 20px); left: 10px !important; }
+  .resume-viewer { width: calc(100vw - 20px); max-height: 70vh; left: 10px !important; right: auto !important; }
+  .browser-widget { width: calc(100vw - 20px); height: 300px; left: 10px !important; }
+
+  .sticky-note { display: none; }
 
   .window {
     width: 92vw !important;
@@ -1188,4 +1191,9 @@ html, body, #root {
   }
 
   .notification { width: 260px; }
+
+  .splash-text { font-size: 28px; }
+
+  .folder-icon-graphic { width: 52px; height: 44px; }
+  .pdf-icon-graphic { width: 42px; height: 52px; }
 }

@@ -104,7 +104,10 @@ export default function Desktop({ onFolderOpen }) {
     setZIndices((prev) => ({ ...prev, [key]: zCounter.current }))
   }, [])
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+
   useEffect(() => {
+    if (isMobile) return
     const resumeTimer = setTimeout(() => setResumeOpen(true), 3200)
     const twixTimer = setTimeout(() => setTwixOpen(true), 3600)
     const eternalTimer = setTimeout(() => setEternalOpen(true), 4000)
