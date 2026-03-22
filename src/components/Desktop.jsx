@@ -1,19 +1,64 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { useRef, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Terminal from './Terminal'
 import StickyNote from './StickyNote'
 import ResumeViewer from './ResumeViewer'
 import BrowserWidget from './BrowserWidget'
 import { FOLDERS, STICKY_NOTES } from '../data/folders'
+import { BROWSER_PROJECTS } from '../data/siteConfig'
 
-function FolderIcon({ folder, onClick, index }) {
+// Pre-compute layout positions for browser widgets
+const BROWSER_POSITIONS = [
+  { left: 480, top: 50 },
+  { left: 200, top: 310 },
+  { left: 350, top: 180 },
+  { left: 500, top: 280 },
+  { left: 300, top: 100 },
+]
+
+function ClickHint({ show }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          className="click-hint"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4, transition: { duration: 0.2 } }}
+          transition={{ delay: 3.5, duration: 0.4 }}
+        >
+          click me
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// Hook to distinguish drag from click
+function useDragClick(onClickAction) {
+  const didDrag = useRef(false)
+
+  const onDragStart = () => { didDrag.current = true }
+  const onDragEnd = () => {
+    // Reset after a tick so onClick can check it
+    setTimeout(() => { didDrag.current = false }, 0)
+  }
+  const onClick = (e) => {
+    if (didDrag.current) return
+    onClickAction(e)
+  }
+
+  return { onDragStart, onDragEnd, onClick }
+}
+
+function FolderIcon({ folder, onOpen, index, clicked }) {
   const ref = useRef(null)
 
-  const handleClick = () => {
+  const { onDragStart, onDragEnd, onClick } = useDragClick(() => {
     if (!ref.current) return
     const rect = ref.current.getBoundingClientRect()
-    onClick(folder, rect)
-  }
+    onOpen(folder, rect)
+  })
 
   return (
     <motion.div
@@ -22,7 +67,9 @@ function FolderIcon({ folder, onClick, index }) {
       style={{ left: folder.position.x, top: folder.position.y }}
       drag
       dragMomentum={false}
-      onClick={handleClick}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
       initial={{ opacity: 0, scale: 0, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{
@@ -43,17 +90,22 @@ function FolderIcon({ folder, onClick, index }) {
         <div className="folder-body" />
       </div>
       <span className="folder-icon-label">{folder.name}</span>
+      <ClickHint show={!clicked} />
     </motion.div>
   )
 }
 
-function PdfIcon({ onClick, index }) {
+function PdfIcon({ onClick: onClickProp, index, clicked }) {
+  const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
+
   return (
     <motion.div
       className="folder-icon"
       style={{ left: 140, top: 50 }}
       drag
       dragMomentum={false}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       onClick={onClick}
       initial={{ opacity: 0, scale: 0, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -81,54 +133,90 @@ function PdfIcon({ onClick, index }) {
         </div>
       </div>
       <span className="folder-icon-label">Resume.pdf</span>
+      <ClickHint show={!clicked} />
+    </motion.div>
+  )
+}
+
+function TerminalIcon({ onClick: onClickProp, index, clicked }) {
+  const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
+
+  return (
+    <motion.div
+      className="folder-icon"
+      style={{ left: 140, top: 270 }}
+      drag
+      dragMomentum={false}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      initial={{ opacity: 0, scale: 0, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 20,
+        delay: 2.3 + index * 0.1,
+      }}
+      whileHover={{
+        scale: 1.12,
+        y: -4,
+        transition: { type: 'spring', stiffness: 400, damping: 15 },
+      }}
+      whileTap={{ scale: 0.9 }}
+      data-clickable
+    >
+      <div className="terminal-icon-graphic">
+        <div className="terminal-icon-screen">
+          <span className="terminal-icon-prompt">&gt;_</span>
+        </div>
+      </div>
+      <span className="folder-icon-label">Terminal</span>
+      <ClickHint show={!clicked} />
     </motion.div>
   )
 }
 
 export default function Desktop({ onFolderOpen }) {
   const [resumeOpen, setResumeOpen] = useState(false)
-  const [twixOpen, setTwixOpen] = useState(false)
-  const [eternalOpen, setEternalOpen] = useState(false)
-  const [newsletterOpen, setNewsletterOpen] = useState(false)
+  const [terminalOpen, setTerminalOpen] = useState(true)
+  const [clickedItems, setClickedItems] = useState({})
+
+  // Dynamic state for all browser projects
+  const [browserOpen, setBrowserOpen] = useState(
+    () => Object.fromEntries(BROWSER_PROJECTS.map((p) => [p.id, false]))
+  )
+
   const zCounter = useRef(10)
-  const [zIndices, setZIndices] = useState({
-    terminal: 10,
-    resume: 11,
-    twix: 12,
-    eternal: 13,
-    newsletter: 14,
-  })
+  const initialZ = { terminal: 10, resume: 11 }
+  BROWSER_PROJECTS.forEach((p, i) => { initialZ[p.id] = 12 + i })
+  const [zIndices, setZIndices] = useState(initialZ)
 
   const bringToFront = useCallback((key) => {
     zCounter.current += 1
     setZIndices((prev) => ({ ...prev, [key]: zCounter.current }))
   }, [])
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const markClicked = (id) => {
+    setClickedItems((prev) => ({ ...prev, [id]: true }))
+  }
 
-  useEffect(() => {
-    if (isMobile) return
-    const resumeTimer = setTimeout(() => setResumeOpen(true), 3200)
-    const twixTimer = setTimeout(() => setTwixOpen(true), 3600)
-    const eternalTimer = setTimeout(() => setEternalOpen(true), 4000)
-    return () => {
-      clearTimeout(resumeTimer)
-      clearTimeout(twixTimer)
-      clearTimeout(eternalTimer)
-    }
-  }, [])
+  const openBrowser = (id) => {
+    setBrowserOpen((prev) => ({ ...prev, [id]: true }))
+    bringToFront(id)
+    markClicked(id)
+  }
+
+  const closeBrowser = (id) => {
+    setBrowserOpen((prev) => ({ ...prev, [id]: false }))
+  }
 
   const handleFolderClick = (folder, rect) => {
-    if (folder.id === 'twix-chat') {
-      setTwixOpen(true)
-      bringToFront('twix')
-    } else if (folder.id === 'eternal-entries') {
-      setEternalOpen(true)
-      bringToFront('eternal')
-    } else if (folder.id === 'undercover-agents') {
-      setNewsletterOpen(true)
-      bringToFront('newsletter')
+    const browserProject = BROWSER_PROJECTS.find((p) => p.id === folder.id)
+    if (browserProject) {
+      openBrowser(folder.id)
     } else {
+      markClicked(folder.id)
       onFolderOpen(folder, rect)
     }
   }
@@ -139,38 +227,47 @@ export default function Desktop({ onFolderOpen }) {
         <FolderIcon
           key={folder.id}
           folder={folder}
-          onClick={handleFolderClick}
+          onOpen={handleFolderClick}
           index={i}
+          clicked={!!clickedItems[folder.id]}
         />
       ))}
 
-      <PdfIcon onClick={() => { setResumeOpen(true); bringToFront('resume') }} index={FOLDERS.length} />
+      <PdfIcon
+        onClick={() => { setResumeOpen(true); bringToFront('resume'); markClicked('resume') }}
+        index={FOLDERS.length}
+        clicked={!!clickedItems.resume}
+      />
+
+      <TerminalIcon
+        onClick={() => { setTerminalOpen(true); bringToFront('terminal'); markClicked('terminal') }}
+        index={FOLDERS.length + 1}
+        clicked={!!clickedItems.terminal}
+      />
 
       <Terminal
+        isOpen={terminalOpen}
+        onClose={() => setTerminalOpen(false)}
         style={{ position: 'absolute', left: 280, top: 50 }}
         zIndex={zIndices.terminal}
         onFocus={() => bringToFront('terminal')}
       />
 
-      <BrowserWidget
-        isOpen={eternalOpen}
-        onClose={() => setEternalOpen(false)}
-        url="https://eternal-entries.vercel.app"
-        title="Eternal Entries"
-        style={{ position: 'absolute', left: 480, top: 50 }}
-        zIndex={zIndices.eternal}
-        onFocus={() => bringToFront('eternal')}
-      />
-
-      <BrowserWidget
-        isOpen={twixOpen}
-        onClose={() => setTwixOpen(false)}
-        url="https://twix-chat.vercel.app"
-        title="Twix Chat"
-        style={{ position: 'absolute', left: 200, top: 310 }}
-        zIndex={zIndices.twix}
-        onFocus={() => bringToFront('twix')}
-      />
+      {BROWSER_PROJECTS.map((project, i) => {
+        const pos = BROWSER_POSITIONS[i] || BROWSER_POSITIONS[0]
+        return (
+          <BrowserWidget
+            key={project.id}
+            isOpen={browserOpen[project.id]}
+            onClose={() => closeBrowser(project.id)}
+            url={project.url}
+            title={project.name}
+            style={{ position: 'absolute', left: pos.left, top: pos.top }}
+            zIndex={zIndices[project.id]}
+            onFocus={() => bringToFront(project.id)}
+          />
+        )
+      })}
 
       <ResumeViewer
         isOpen={resumeOpen}
@@ -178,16 +275,6 @@ export default function Desktop({ onFolderOpen }) {
         style={{ position: 'absolute', right: 30, top: 310 }}
         zIndex={zIndices.resume}
         onFocus={() => bringToFront('resume')}
-      />
-
-      <BrowserWidget
-        isOpen={newsletterOpen}
-        onClose={() => setNewsletterOpen(false)}
-        url="https://undercover-agents.beehiiv.com/"
-        title="Undercover Agents"
-        style={{ position: 'absolute', left: 350, top: 180 }}
-        zIndex={zIndices.newsletter}
-        onFocus={() => bringToFront('newsletter')}
       />
 
       {STICKY_NOTES.map((note) => (

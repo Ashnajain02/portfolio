@@ -32,7 +32,6 @@ const TIPS = [
   { title: 'Welcome!', message: 'Click on any folder to explore my projects.' },
   { title: 'Tip', message: 'Try right-clicking on the desktop!' },
   { title: 'Tip', message: 'Everything is draggable — move things around!' },
-  { title: 'Tip', message: 'Push the skill bubbles around — they have physics!' },
 ]
 
 export default function App() {

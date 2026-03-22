@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useApp } from '../App'
+import { PROFILE } from '../data/siteConfig'
 
 export default function TopBar() {
   const { musicPlaying, setMusicPlaying } = useApp()
@@ -25,7 +26,7 @@ export default function TopBar() {
       transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 2.2 }}
     >
       <div className="topbar-left">
-        <span className="topbar-name">Ashna Jain</span>
+        <span className="topbar-name">{PROFILE.name}</span>
         <button className="topbar-btn" onClick={() => setMusicPlaying(!musicPlaying)}>
           <div className="music-indicator">
             {[1, 2, 3, 4].map((i) => (

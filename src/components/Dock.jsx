@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion'
+import { DOCK_LINKS } from '../data/siteConfig'
 
 const DOCK_ITEMS = [
   {
@@ -11,7 +12,7 @@ const DOCK_ITEMS = [
       </svg>
     ),
     colorClass: 'dock-icon--github',
-    href: 'https://github.com/ashnajain02',
+    href: DOCK_LINKS.github,
   },
   {
     id: 'linkedin',
@@ -22,7 +23,7 @@ const DOCK_ITEMS = [
       </svg>
     ),
     colorClass: 'dock-icon--linkedin',
-    href: 'https://www.linkedin.com/in/ashna-jain/',
+    href: DOCK_LINKS.linkedin,
   },
   {
     id: 'email',
@@ -33,7 +34,7 @@ const DOCK_ITEMS = [
       </svg>
     ),
     colorClass: 'dock-icon--email',
-    href: 'mailto:ashnajain02@gmail.com',
+    href: DOCK_LINKS.email,
   },
 ]
 

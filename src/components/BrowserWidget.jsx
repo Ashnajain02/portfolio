@@ -33,8 +33,6 @@ export default function BrowserWidget({ isOpen, onClose, url, title, style, zInd
                 onClick={onClose}
                 data-clickable
               />
-              <div className="window-dot window-dot--minimize" />
-              <div className="window-dot window-dot--maximize" />
             </div>
 
             <div className="browser-widget-url">

@@ -418,6 +418,57 @@ html, body, #root {
   font-size: 12px;
 }
 
+/* ===== Terminal Desktop Icon ===== */
+.terminal-icon-graphic {
+  width: 64px;
+  height: 56px;
+  position: relative;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+  transition: filter 0.3s ease;
+}
+
+.folder-icon:hover .terminal-icon-graphic {
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.2));
+}
+
+.terminal-icon-screen {
+  width: 100%;
+  height: 100%;
+  background: #1E1E1E;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #333;
+}
+
+.terminal-icon-prompt {
+  color: #A8D08D;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ===== Click Hint ===== */
+.click-hint {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--accent-terra);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: hintPulse 2s ease-in-out infinite;
+  letter-spacing: 0.3px;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
 .resume-download-btn {
   display: flex;
   align-items: center;
