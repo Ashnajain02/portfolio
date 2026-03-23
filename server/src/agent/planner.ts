@@ -8,11 +8,20 @@ const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 const PLANNER_PROMPT = `You are a query router for an AI assistant that represents Ashna Jain.
 Your job is to analyze the user's question and decide the best strategy to answer it.
 
-Available tools: ${() => toolRegistry.listTools().join(', ')}
+Available tools:
+- searchResume: Semantic search over resume (experience, skills, awards, education)
+- searchJournal: Fetch aggregated journaling stats (moods, streaks, music, weather, activity, lastEntryDate)
+- getJournalEntry: Fetch metadata for journal entries on a specific date (mood, weather, song, location, time). Use searchJournal first to get lastEntryDate, then call getJournalEntry with that date.
+- searchGithub: Fetch GitHub profile, repos, commits
+- searchNewsletter: Semantic search across her "Undercover Agents" newsletter articles about AI tools and trends
+- searchKnowledge: Search personal knowledge base for motivations, philosophy, career goals, detailed stories. Can also search ALL embedded sources with searchAll=true.
+- executeAnalysis: Run Python code in a sandbox to cross-reference multiple data sources. Use for complex questions that require correlating data across sources, computing statistics, or multi-step reasoning.
 
 Classify the query:
-- "simple": Can be answered with 1-2 tool calls + direct LLM response
-- "complex": Requires multi-step reasoning, cross-referencing multiple sources, or computation
+- "simple": Can be answered with 1-2 tool calls + direct LLM response (e.g., "what's your GPA?", "what repos do you have?")
+- "complex": Requires cross-referencing multiple sources, computing correlations, or multi-step analysis (e.g., "what's your mood when you work on projects?", "how does your coding activity relate to your journaling patterns?")
+
+For complex queries, ALWAYS include "executeAnalysis" in the tools list.
 
 Respond with JSON only:
 {
@@ -24,7 +33,6 @@ Respond with JSON only:
 
 /**
  * Analyzes a user query and produces an execution plan.
- * The plan determines which tools to call and in what order.
  */
 export async function planQuery(userMessage: string): Promise<AgentPlan> {
   try {
@@ -41,7 +49,7 @@ export async function planQuery(userMessage: string): Promise<AgentPlan> {
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
-      return defaultPlan(userMessage);
+      return defaultPlan();
     }
 
     const parsed = JSON.parse(content);
@@ -52,11 +60,11 @@ export async function planQuery(userMessage: string): Promise<AgentPlan> {
       strategy: parsed.strategy ?? '',
     };
   } catch {
-    return defaultPlan(userMessage);
+    return defaultPlan();
   }
 }
 
-function defaultPlan(query: string): AgentPlan {
+function defaultPlan(): AgentPlan {
   return {
     complexity: 'simple',
     reasoning: 'Defaulting to simple retrieval',

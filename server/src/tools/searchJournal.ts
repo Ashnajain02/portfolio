@@ -1,16 +1,15 @@
 import { toolRegistry } from './registry.js';
-import { fetchJournalStats, formatJournalStats } from '../data/journal.js';
+import { fetchJournalStats, fetchJournalEntries, formatJournalStats, formatJournalEntry } from '../data/journal.js';
 import type { ToolDefinition } from '../types/index.js';
 
-const searchJournal: ToolDefinition = {
+const searchJournalStats: ToolDefinition = {
   name: 'searchJournal',
   description: [
-    'Fetch Ashna\'s journaling statistics from her Eternal Entries diary app.',
-    'Returns aggregated stats: entry counts, streaks, mood distribution,',
-    'favorite journaling times, music paired with entries, weather patterns,',
-    'and writing habits. Use this for questions about her journaling habits,',
-    'mood, music taste, daily routines, or the Eternal Entries project itself.',
-    'Does NOT return actual journal entry content — only statistics.',
+    'Fetch Ashna\'s aggregated journaling statistics from her Eternal Entries diary app.',
+    'Returns: entry counts, streaks, mood distribution, favorite journaling times,',
+    'music paired with entries, weather patterns, writing habits, last/first entry dates.',
+    'Use for general questions about journaling habits, overall mood trends, or activity patterns.',
+    'For specific entries (mood/weather/song on a particular date), use getJournalEntry instead.',
   ].join(' '),
   parameters: {
     type: 'object',
@@ -30,21 +29,7 @@ const searchJournal: ToolDefinition = {
     try {
       const stats = await fetchJournalStats();
 
-      // Return full formatted summary or specific section
       if (category === 'all') {
-        return {
-          success: true,
-          data: {
-            summary: formatJournalStats(stats),
-            raw: stats,
-          },
-          source: 'journal',
-        };
-      }
-
-      // Return specific category
-      const categoryData = (stats as Record<string, unknown>)[category];
-      if (!categoryData) {
         return {
           success: true,
           data: { summary: formatJournalStats(stats), raw: stats },
@@ -52,23 +37,90 @@ const searchJournal: ToolDefinition = {
         };
       }
 
+      const categoryData = (stats as Record<string, unknown>)[category];
       return {
         success: true,
         data: {
           category,
-          stats: categoryData,
+          stats: categoryData ?? stats,
           context: formatCategoryContext(category, stats),
         },
         source: 'journal',
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      return { success: false, data: null, source: 'journal', error: message };
+    }
+  },
+};
+
+const getJournalEntry: ToolDefinition = {
+  name: 'getJournalEntry',
+  description: [
+    'Fetch journal entry metadata for a specific date.',
+    'Returns mood, weather (temperature, description, location),',
+    'song (name, artist, album), and reflection prompt for entries on that date.',
+    'Does NOT return actual journal text content.',
+    'Use this when asked about a specific day\'s journal — mood, weather, song, time, location.',
+    'To find the most recent entry date, first call searchJournal with category "activity" to get lastEntryDate,',
+    'then call this tool with that date.',
+  ].join(' '),
+  parameters: {
+    type: 'object',
+    properties: {
+      year: {
+        type: 'number',
+        description: 'Year (e.g., 2026). Required.',
+      },
+      month: {
+        type: 'number',
+        description: 'Month (1-12). Optional — omit to get all entries for the year.',
+      },
+      day: {
+        type: 'number',
+        description: 'Day (1-31). Optional — omit to get all entries for the month.',
+      },
+    },
+    required: ['year'],
+    additionalProperties: false,
+  },
+  execute: async (args) => {
+    const year = args.year as number;
+    const month = args.month as number | undefined;
+    const day = args.day as number | undefined;
+
+    try {
+      const result = await fetchJournalEntries({ year, month, day });
+
+      if (result.count === 0) {
+        return {
+          success: true,
+          data: { message: `No journal entries found for ${year}${month ? `-${month}` : ''}${day ? `-${day}` : ''}.`, entries: [] },
+          source: 'journal',
+        };
+      }
+
+      const formatted = result.entries.map(formatJournalEntry);
+
       return {
-        success: false,
-        data: null,
+        success: true,
+        data: {
+          count: result.count,
+          entries: result.entries.map((e, i) => ({
+            date: e.date,
+            time: new Date(e.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            mood: e.mood,
+            weather: e.weather ? `${e.weather.description}, ${e.weather.temperature}°C in ${e.weather.location}` : null,
+            song: e.track ? `"${e.track.name}" by ${e.track.artist}` : null,
+            reflection: e.reflection ? { question: e.reflection.question, answered: e.reflection.hasAnswer } : null,
+            summary: formatted[i],
+          })),
+        },
         source: 'journal',
-        error: `Failed to fetch journal stats: ${message}`,
       };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, data: null, source: 'journal', error: message };
     }
   },
 };
@@ -76,7 +128,7 @@ const searchJournal: ToolDefinition = {
 function formatCategoryContext(category: string, stats: any): string {
   switch (category) {
     case 'activity':
-      return `${stats.activity.totalEntries} total entries. ${stats.activity.entriesThisWeek} this week. Average ${stats.activity.avgEntriesPerWeek}/week.`;
+      return `${stats.activity.totalEntries} total entries across ${stats.activity.totalDaysJournaled} days. Last entry: ${stats.activity.lastEntryDate}. First entry: ${stats.activity.firstEntryDate}. ${stats.activity.entriesThisWeek} this week. Average ${stats.activity.avgEntriesPerWeek}/week.`;
     case 'streaks':
       return `Current streak: ${stats.streaks.current} days. Longest: ${stats.streaks.longest} days.`;
     case 'mood':
@@ -96,5 +148,6 @@ function formatCategoryContext(category: string, stats: any): string {
 }
 
 export function registerJournalTools(): void {
-  toolRegistry.register(searchJournal);
+  toolRegistry.register(searchJournalStats);
+  toolRegistry.register(getJournalEntry);
 }

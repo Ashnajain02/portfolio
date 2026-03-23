@@ -9,6 +9,8 @@ const envSchema = z.object({
   E2B_API_KEY: z.string().optional().default(''),
   JOURNAL_API_URL: z.string().optional().default(''),
   JOURNAL_API_KEY: z.string().optional().default(''),
+  BEEHIIV_API_KEY: z.string().optional().default(''),
+  BEEHIIV_PUBLICATION_ID: z.string().optional().default(''),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   FRONTEND_URL: z.string().default('http://localhost:5173'),

@@ -17,7 +17,7 @@ export interface DocumentMetadata {
   [key: string]: unknown;
 }
 
-export type DataSource = 'resume' | 'journal' | 'github' | 'drive' | 'general';
+export type DataSource = 'resume' | 'journal' | 'github' | 'drive' | 'newsletter' | 'general';
 
 // ============================================================
 // Chat types
