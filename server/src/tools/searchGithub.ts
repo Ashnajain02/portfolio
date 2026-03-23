@@ -1,0 +1,104 @@
+import { toolRegistry } from './registry.js';
+import { fetchProfile, fetchRepos, fetchRecentCommits, getGitHubSummary } from '../data/github.js';
+import type { ToolDefinition } from '../types/index.js';
+
+const searchGithub: ToolDefinition = {
+  name: 'searchGithub',
+  description: [
+    'Search Ashna\'s GitHub profile, repositories, and recent activity.',
+    'Use this for questions about her coding projects, open source work,',
+    'programming languages, recent commits, GitHub stats, or repos.',
+    'Can fetch profile overview, list repos, or get recent commits for a specific repo.',
+  ].join(' '),
+  parameters: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['overview', 'repos', 'commits'],
+        description: '"overview" for profile + repo summary, "repos" for repo list, "commits" for recent commits on a specific repo.',
+      },
+      repo: {
+        type: 'string',
+        description: 'Repository name (required when action is "commits"). e.g., "eternal-entries".',
+      },
+    },
+    required: ['action'],
+    additionalProperties: false,
+  },
+  execute: async (args) => {
+    const action = args.action as string;
+    const repo = args.repo as string | undefined;
+
+    try {
+      switch (action) {
+        case 'overview': {
+          const summary = await getGitHubSummary();
+          return {
+            success: true,
+            data: { summary },
+            source: 'github',
+          };
+        }
+
+        case 'repos': {
+          const repos = await fetchRepos();
+          return {
+            success: true,
+            data: repos.map(r => ({
+              name: r.name,
+              language: r.language,
+              description: r.description,
+              url: r.html_url,
+              stars: r.stargazers_count,
+              updatedAt: r.updated_at.slice(0, 10),
+              topics: r.topics,
+            })),
+            source: 'github',
+          };
+        }
+
+        case 'commits': {
+          if (!repo) {
+            return {
+              success: false,
+              data: null,
+              source: 'github',
+              error: 'Repo name required for fetching commits. Try action "repos" first to see available repos.',
+            };
+          }
+          const commits = await fetchRecentCommits(repo);
+          return {
+            success: true,
+            data: commits.map(c => ({
+              message: c.commit.message,
+              date: c.commit.author.date.slice(0, 10),
+              url: c.html_url,
+            })),
+            source: 'github',
+          };
+        }
+
+        default:
+          return {
+            success: false,
+            data: null,
+            source: 'github',
+            error: `Unknown action: ${action}`,
+          };
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        data: null,
+        source: 'github',
+        error: `GitHub API error: ${message}`,
+      };
+    }
+  },
+};
+
+export function registerGithubTools(): void {
+  toolRegistry.register(searchGithub);
+}

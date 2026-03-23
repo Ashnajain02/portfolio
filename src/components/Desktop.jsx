@@ -4,6 +4,7 @@ import Terminal from './Terminal'
 import StickyNote from './StickyNote'
 import ResumeViewer from './ResumeViewer'
 import BrowserWidget from './BrowserWidget'
+import ChatWidget from './ChatWidget'
 import { FOLDERS, STICKY_NOTES } from '../data/folders'
 import { BROWSER_PROJECTS } from '../data/siteConfig'
 
@@ -138,6 +139,45 @@ function PdfIcon({ onClick: onClickProp, index, clicked }) {
   )
 }
 
+function ChatIcon({ onClick: onClickProp, index, clicked }) {
+  const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
+
+  return (
+    <motion.div
+      className="folder-icon"
+      style={{ left: 40, top: 380 }}
+      drag
+      dragMomentum={false}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      initial={{ opacity: 0, scale: 0, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 20,
+        delay: 2.3 + index * 0.1,
+      }}
+      whileHover={{
+        scale: 1.12,
+        y: -4,
+        transition: { type: 'spring', stiffness: 400, damping: 15 },
+      }}
+      whileTap={{ scale: 0.9 }}
+      data-clickable
+    >
+      <div className="chat-icon-graphic">
+        <div className="chat-icon-dots">
+          <span /><span /><span />
+        </div>
+      </div>
+      <span className="folder-icon-label">Ask Ashna</span>
+      <ClickHint show={!clicked} />
+    </motion.div>
+  )
+}
+
 function TerminalIcon({ onClick: onClickProp, index, clicked }) {
   const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
 
@@ -180,6 +220,7 @@ function TerminalIcon({ onClick: onClickProp, index, clicked }) {
 export default function Desktop({ onFolderOpen }) {
   const [resumeOpen, setResumeOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(true)
+  const [chatOpen, setChatOpen] = useState(false)
   const [clickedItems, setClickedItems] = useState({})
 
   // Dynamic state for all browser projects
@@ -188,7 +229,7 @@ export default function Desktop({ onFolderOpen }) {
   )
 
   const zCounter = useRef(10)
-  const initialZ = { terminal: 10, resume: 11 }
+  const initialZ = { terminal: 10, resume: 11, chat: 15 }
   BROWSER_PROJECTS.forEach((p, i) => { initialZ[p.id] = 12 + i })
   const [zIndices, setZIndices] = useState(initialZ)
 
@@ -245,6 +286,12 @@ export default function Desktop({ onFolderOpen }) {
         clicked={!!clickedItems.terminal}
       />
 
+      <ChatIcon
+        onClick={() => { setChatOpen(true); bringToFront('chat'); markClicked('chat') }}
+        index={FOLDERS.length + 2}
+        clicked={!!clickedItems.chat}
+      />
+
       <Terminal
         isOpen={terminalOpen}
         onClose={() => setTerminalOpen(false)}
@@ -275,6 +322,14 @@ export default function Desktop({ onFolderOpen }) {
         style={{ position: 'absolute', right: 30, top: 310 }}
         zIndex={zIndices.resume}
         onFocus={() => bringToFront('resume')}
+      />
+
+      <ChatWidget
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        style={{ position: 'absolute', left: 350, top: 60 }}
+        zIndex={zIndices.chat}
+        onFocus={() => bringToFront('chat')}
       />
 
       {STICKY_NOTES.map((note) => (
