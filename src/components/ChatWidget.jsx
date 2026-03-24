@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
+import { PROFILE } from '../data/siteConfig'
 
 const API_URL = import.meta.env.VITE_CHAT_API_URL || 'http://localhost:3001'
 
@@ -7,7 +8,7 @@ const INITIAL_MESSAGES = [
   {
     id: 'welcome',
     role: 'assistant',
-    content: "Hey! I'm the AI version of Ashna. Ask me anything — my experience, projects, skills, or just say hi.",
+    content: `Hey! I'm the AI version of ${PROFILE.name}. Ask me anything — my experience, projects, skills, or just say hi.`,
     timestamp: Date.now(),
   },
 ]
@@ -31,7 +32,7 @@ function SourceBadge({ source }) {
   )
 }
 
-function ChatMessage({ message, isLast }) {
+function ChatMessage({ message }) {
   const isUser = message.role === 'user'
 
   return (
@@ -61,14 +62,17 @@ export default function ChatWidget({ isOpen, onClose, style, zIndex, onFocus }) 
   const [sessionId, setSessionId] = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  // Accumulate tokens in a ref, flush to state via rAF to avoid per-token re-renders
+  const pendingContentRef = useRef(null)
+  const rafRef = useRef(null)
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
+  }
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, isStreaming, scrollToBottom])
+  }, [messages, isStreaming])
 
   useEffect(() => {
     if (isOpen) {
@@ -98,6 +102,7 @@ export default function ChatWidget({ isOpen, onClose, style, zIndex, onFocus }) 
         body: JSON.stringify({
           message: text,
           ...(sessionId && { sessionId }),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       })
 
@@ -149,13 +154,19 @@ export default function ChatWidget({ isOpen, onClose, style, zIndex, onFocus }) 
 
               case 'token':
                 assistantContent += event.data
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === assistantId
-                      ? { ...m, content: assistantContent }
-                      : m
-                  )
-                )
+                // Batch token updates via rAF (~60fps) instead of per-token
+                pendingContentRef.current = assistantContent
+                if (!rafRef.current) {
+                  rafRef.current = requestAnimationFrame(() => {
+                    rafRef.current = null
+                    const content = pendingContentRef.current
+                    if (content !== null) {
+                      setMessages(prev =>
+                        prev.map(m => m.id === assistantId ? { ...m, content } : m)
+                      )
+                    }
+                  })
+                }
                 break
 
               case 'sources':
@@ -181,6 +192,16 @@ export default function ChatWidget({ isOpen, onClose, style, zIndex, onFocus }) 
                 break
 
               case 'done':
+                // Final flush of any pending content
+                if (rafRef.current) cancelAnimationFrame(rafRef.current)
+                rafRef.current = null
+                if (pendingContentRef.current !== null) {
+                  const finalContent = pendingContentRef.current
+                  setMessages(prev =>
+                    prev.map(m => m.id === assistantId ? { ...m, content: finalContent } : m)
+                  )
+                  pendingContentRef.current = null
+                }
                 break
             }
           } catch {
@@ -236,7 +257,7 @@ export default function ChatWidget({ isOpen, onClose, style, zIndex, onFocus }) 
             <div className="chat-widget-header-info">
               <div className="chat-widget-avatar">AJ</div>
               <div>
-                <div className="chat-widget-name">Ashna Jain</div>
+                <div className="chat-widget-name">{PROFILE.name}</div>
                 <div className="chat-widget-status">
                   {isStreaming ? 'typing...' : 'AI Agent'}
                 </div>
@@ -251,7 +272,6 @@ export default function ChatWidget({ isOpen, onClose, style, zIndex, onFocus }) 
               <ChatMessage
                 key={msg.id}
                 message={msg}
-                isLast={i === messages.length - 1}
               />
             ))}
             {isStreaming && messages[messages.length - 1]?.content === '' && (

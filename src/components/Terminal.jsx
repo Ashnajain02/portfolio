@@ -5,9 +5,13 @@ import { PROFILE } from '../data/siteConfig'
 const API_URL = import.meta.env.VITE_CHAT_API_URL || 'http://localhost:3001'
 
 const WELCOME_LINES = [
-  { type: 'system', text: `Welcome to ${PROFILE.name.split(' ')[0].toLowerCase()}@portfolio ~ $` },
-  { type: 'response', text: `Hey, I'm ${PROFILE.name} — ask me anything.` },
-  { type: 'response', text: 'Try: "what do you do?", "tell me about your projects"' },
+  { type: 'system', text: `${PROFILE.name.split(' ')[0].toLowerCase()}@portfolio ~ $` },
+  { type: 'response', text: `Hey! I'm an AI version of ${PROFILE.name}.` },
+  { type: 'response', text: 'I can talk about my work, projects, code, journal, newsletter, and more.' },
+  { type: 'system', text: '' },
+  { type: 'source', text: 'try: "what was my mood the last time I journaled?"' },
+  { type: 'source', text: '     "what AI tools have you written about?"' },
+  { type: 'source', text: '     "compare my coding activity with my journaling habits"' },
   { type: 'system', text: '' },
 ]
 
@@ -16,6 +20,7 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
   const [lines, setLines] = useState(WELCOME_LINES)
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [hasTokens, setHasTokens] = useState(false)
   const [sessionId, setSessionId] = useState(null)
   const bodyRef = useRef(null)
   const inputRef = useRef(null)
@@ -44,6 +49,7 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
     setLines(prev => [...prev, { type: 'prompt', text }])
     setInput('')
     setIsStreaming(true)
+    setHasTokens(false)
 
     // Add empty response line that we'll stream into
     const responseId = Date.now()
@@ -88,6 +94,7 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
                 break
               case 'token':
                 content += event.data
+                setHasTokens(true)
                 // Batch updates via rAF
                 pendingRef.current = content
                 if (!rafRef.current) {
@@ -152,15 +159,18 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
             <span className="terminal-command">{line.text}</span>
           </div>
         )
-      case 'response':
+      case 'response': {
         // Hide empty response lines during streaming (thinking indicator handles that)
         if (isStreaming && line.id && !line.text) return null
+        // Only show cursor on the actively streaming response (the last one with an id)
+        const isActiveResponse = isStreaming && line.id && line === lines.findLast(l => l.id)
         return (
           <div key={line.id || i} className="terminal-line">
             <span className="terminal-response">{line.text}</span>
-            {isStreaming && line.id && <span className="terminal-cursor" />}
+            {isActiveResponse && <span className="terminal-cursor" />}
           </div>
         )
+      }
       case 'source':
         return (
           <div key={i} className="terminal-line">
@@ -225,7 +235,7 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
                 />
               </div>
             )}
-            {isStreaming && !lines.some(l => l.id && l.text) && (
+            {isStreaming && !hasTokens && (
               <div className="terminal-line">
                 <span className="terminal-prompt">~ </span>
                 <span className="terminal-thinking">thinking</span>
