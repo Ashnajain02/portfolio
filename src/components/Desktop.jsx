@@ -88,7 +88,8 @@ BROWSER_PROJECTS.forEach((p, i) => { INITIAL_Z[p.id] = 12 + i })
 
 export default function Desktop({ onFolderOpen }) {
   const [resumeOpen, setResumeOpen] = useState(false)
-  const [terminalOpen, setTerminalOpen] = useState(true)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+  const [terminalOpen, setTerminalOpen] = useState(!isMobile)
   const [clickedItems, setClickedItems] = useState({})
   const [browserOpen, setBrowserOpen] = useState(
     () => Object.fromEntries(BROWSER_PROJECTS.map((p) => [p.id, false]))

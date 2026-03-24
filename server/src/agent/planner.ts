@@ -15,11 +15,13 @@ Available tools:
 - correlateActivity: Cross-reference GitHub commits with journal entries (overlapping days, mood on coding days, day-of-week patterns)
 
 Rules:
-- Select 1-3 tools that are most relevant. Don't select tools that won't help.
-- For questions about specific projects (Echo, Twix, etc.), ALWAYS include both searchKnowledge AND searchGithub — knowledge has the personal story, GitHub has the technical details and README.
+- Select 2-3 tools. When in doubt, include MORE tools — it's better to have extra context than miss information.
+- ALWAYS include searchKnowledge for any question about Ashna personally, her projects, opinions, or background.
+- For questions about specific projects (Echo, Twix, Shift Up, etc.), include searchKnowledge AND searchGithub AND searchResume.
+- For hackathon/award questions, include searchResume AND searchKnowledge.
 - For cross-source questions (coding + journaling), use correlateActivity.
 - For "when did I last journal" + details, use searchJournal then getJournalEntry.
-- For personal/philosophical questions, use searchKnowledge.
+- For newsletter/AI topics, include searchNewsletter AND searchKnowledge.
 
 Respond with JSON only:
 {
