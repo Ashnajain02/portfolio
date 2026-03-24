@@ -11,20 +11,19 @@ import type { AgentPlan } from '../types/index.js';
 const PLANNER_PROMPT = `You are a query router. Given a user question and any retrieved context, decide if live tools are needed.
 
 Tools:
-- searchJournal: Live journal stats — streaks, mood trends, entry counts, favorite time/day, music, weather patterns, last entry date
-- getJournalEntry: Specific date's journal entry — mood, weather, song, location, time
+- searchJournal: Live journal stats (streaks, mood trends, entry counts, favorite time/day, music, weather, last entry date)
+- getJournalEntry: Specific date's journal entry (mood, weather, song, location, time)
 - searchGithub: GitHub profile, repo list, commits, or README content
-- correlateActivity: Cross-reference GitHub commits with journal entries
 
 Decision rules:
 1. If retrieved context fully answers the question → needsTools: false.
 2. If retrieved context is empty or insufficient → needsTools: true.
 3. Live/temporal words ("now", "currently", "recently", "latest", "last") → needsTools: true.
-4. ANY question about journaling habits, mood, streaks, music, weather, time patterns → searchJournal (this is live data, not in RAG).
-5. ANY question asking "what did I code/commit" on a specific date → searchGithub (commits).
-6. Questions combining coding + journaling on a date → correlateActivity.
-7. Project detail questions ("how does X work", "what features") → searchGithub (README).
-8. Follow-up questions asking for specifics about a previous answer → assume tools are needed (previous tool results are not in context).
+4. ANY question about journaling habits, mood, streaks, music, weather, time patterns → searchJournal.
+5. ANY question asking "what did I code/commit" → searchGithub.
+6. Cross-source questions (coding + journaling patterns) → select BOTH searchGithub AND searchJournal so the LLM can reason across both results.
+7. Project detail questions ("how does X work") → searchGithub (README).
+8. Follow-up questions asking for specifics → assume tools are needed.
 9. Select only the tools truly needed, at most 3.
 
 Respond with JSON only:
