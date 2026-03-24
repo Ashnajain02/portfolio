@@ -2,7 +2,7 @@
 
 A personal portfolio website styled as an interactive desktop environment, featuring an AI chatbot that answers questions using multi-source RAG, tool calling, and cross-source data correlation — all streamed through a terminal interface.
 
-**Live:** [ashnajain.com](https://ashnajain.com)
+**Live:** [ashnajain.com](https://about-ashna-jain.vercel.app/)
 
 ---
 
