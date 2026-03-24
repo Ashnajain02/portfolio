@@ -56,7 +56,7 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
     setLines(prev => [...prev, { type: 'response', text: '', id: responseId }])
 
     try {
-      const response = await fetch(`${API_URL}/api/chat`, {
+      const fetchChat = () => fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,6 +65,15 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       })
+
+      // Retry once on network failure (handles Railway cold starts)
+      let response
+      try {
+        response = await fetchChat()
+      } catch {
+        await new Promise(r => setTimeout(r, 2000))
+        response = await fetchChat()
+      }
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`)
 

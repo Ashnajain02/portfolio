@@ -77,9 +77,10 @@ export async function runAgent(
       }).join('\n\n')
     : '';
 
-  // Track RAG sources
-  for (const r of ragResults) {
-    sources.add(r.document.source);
+  // Only attribute sources from high-confidence RAG results (top 2 by score)
+  const topResults = [...ragResults].sort((a, b) => b.score - a.score).slice(0, 2);
+  for (const r of topResults) {
+    if (r.score >= 0.4) sources.add(r.document.source);
   }
 
   // Build RAG summary for planner (shorter than full context)
