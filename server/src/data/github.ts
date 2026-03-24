@@ -1,6 +1,5 @@
-import { env } from '../config/env.js';
+import { GITHUB_USERNAME, CACHE_TTL_MEDIUM, MAX_CACHE_ENTRIES } from '../config/constants.js';
 
-const GITHUB_USERNAME = 'ashnajain02';
 const GITHUB_API = 'https://api.github.com';
 
 interface GitHubRepo {
@@ -46,13 +45,27 @@ const headers: Record<string, string> = {
   'User-Agent': 'aj-portfolio-agent',
 };
 
-// Cache layer — GitHub has rate limits (60/hr unauthenticated)
+// Bounded cache with TTL and max entry limit
 const cache = new Map<string, { data: unknown; fetchedAt: number }>();
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function evictStaleCache(): void {
+  const now = Date.now();
+  for (const [key, entry] of cache) {
+    if (now - entry.fetchedAt > CACHE_TTL_MEDIUM) {
+      cache.delete(key);
+    }
+  }
+  // Hard cap: evict oldest entries if still over limit
+  if (cache.size > MAX_CACHE_ENTRIES) {
+    const entries = Array.from(cache.entries()).sort((a, b) => a[1].fetchedAt - b[1].fetchedAt);
+    const toRemove = entries.slice(0, cache.size - MAX_CACHE_ENTRIES);
+    for (const [key] of toRemove) cache.delete(key);
+  }
+}
 
 async function cachedFetch<T>(url: string): Promise<T> {
   const cached = cache.get(url);
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MEDIUM) {
     return cached.data as T;
   }
 
@@ -62,6 +75,7 @@ async function cachedFetch<T>(url: string): Promise<T> {
   }
 
   const data = await response.json() as T;
+  evictStaleCache();
   cache.set(url, { data, fetchedAt: Date.now() });
   return data;
 }
@@ -80,12 +94,6 @@ export async function fetchRepos(limit: number = 20): Promise<GitHubRepo[]> {
 export async function fetchRecentCommits(repo: string, limit: number = 10): Promise<GitHubCommit[]> {
   return cachedFetch<GitHubCommit[]>(
     `${GITHUB_API}/repos/${GITHUB_USERNAME}/${repo}/commits?per_page=${limit}`,
-  );
-}
-
-export async function fetchRepoLanguages(repo: string): Promise<Record<string, number>> {
-  return cachedFetch<Record<string, number>>(
-    `${GITHUB_API}/repos/${GITHUB_USERNAME}/${repo}/languages`,
   );
 }
 
@@ -113,7 +121,6 @@ export async function getGitHubSummary(): Promise<string> {
     lines.push(parts.join(' '));
   }
 
-  // Aggregate languages
   const langCounts: Record<string, number> = {};
   for (const repo of repos) {
     if (repo.language) {

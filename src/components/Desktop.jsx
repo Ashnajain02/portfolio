@@ -4,9 +4,8 @@ import Terminal from './Terminal'
 import StickyNote from './StickyNote'
 import ResumeViewer from './ResumeViewer'
 import BrowserWidget from './BrowserWidget'
-import ChatWidget from './ChatWidget'
 import { FOLDERS, STICKY_NOTES } from '../data/folders'
-import { BROWSER_PROJECTS } from '../data/siteConfig'
+import { BROWSER_PROJECTS, PROFILE } from '../data/siteConfig'
 
 // Pre-compute layout positions for browser widgets
 const BROWSER_POSITIONS = [
@@ -16,6 +15,10 @@ const BROWSER_POSITIONS = [
   { left: 500, top: 280 },
   { left: 300, top: 100 },
 ]
+
+// Shared motion config for all desktop icons
+const ICON_HOVER = { scale: 1.12, y: -4, transition: { type: 'spring', stiffness: 400, damping: 15 } }
+const ICON_TAP = { scale: 0.9 }
 
 function ClickHint({ show }) {
   return (
@@ -35,37 +38,31 @@ function ClickHint({ show }) {
   )
 }
 
-// Hook to distinguish drag from click
+// Hook to distinguish drag from click on draggable elements
 function useDragClick(onClickAction) {
   const didDrag = useRef(false)
-
-  const onDragStart = () => { didDrag.current = true }
-  const onDragEnd = () => {
-    // Reset after a tick so onClick can check it
-    setTimeout(() => { didDrag.current = false }, 0)
+  return {
+    onDragStart: () => { didDrag.current = true },
+    onDragEnd: () => { setTimeout(() => { didDrag.current = false }, 0) },
+    onClick: (e) => { if (!didDrag.current) onClickAction(e) },
   }
-  const onClick = (e) => {
-    if (didDrag.current) return
-    onClickAction(e)
-  }
-
-  return { onDragStart, onDragEnd, onClick }
 }
 
-function FolderIcon({ folder, onOpen, index, clicked }) {
+/**
+ * Shared draggable desktop icon — eliminates duplication across
+ * FolderIcon, PdfIcon, TerminalIcon, and ChatIcon.
+ */
+function DesktopIcon({ position, index, clicked, onClickAction, className, children, label }) {
   const ref = useRef(null)
-
   const { onDragStart, onDragEnd, onClick } = useDragClick(() => {
-    if (!ref.current) return
-    const rect = ref.current.getBoundingClientRect()
-    onOpen(folder, rect)
+    onClickAction(ref.current?.getBoundingClientRect())
   })
 
   return (
     <motion.div
       ref={ref}
-      className={`folder-icon folder--${folder.color}`}
-      style={{ left: folder.position.x, top: folder.position.y }}
+      className={`folder-icon ${className || ''}`}
+      style={{ left: position.x, top: position.y }}
       drag
       dragMomentum={false}
       onDragStart={onDragStart}
@@ -73,186 +70,53 @@ function FolderIcon({ folder, onOpen, index, clicked }) {
       onClick={onClick}
       initial={{ opacity: 0, scale: 0, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 20,
-        delay: 2.3 + index * 0.1,
-      }}
-      whileHover={{
-        scale: 1.12,
-        y: -4,
-        transition: { type: 'spring', stiffness: 400, damping: 15 },
-      }}
-      whileTap={{ scale: 0.9 }}
-    >
-      <div className="folder-icon-graphic">
-        <div className="folder-tab" />
-        <div className="folder-body" />
-      </div>
-      <span className="folder-icon-label">{folder.name}</span>
-      <ClickHint show={!clicked} />
-    </motion.div>
-  )
-}
-
-function PdfIcon({ onClick: onClickProp, index, clicked }) {
-  const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
-
-  return (
-    <motion.div
-      className="folder-icon"
-      style={{ left: 140, top: 50 }}
-      drag
-      dragMomentum={false}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onClick={onClick}
-      initial={{ opacity: 0, scale: 0, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 20,
-        delay: 2.3 + index * 0.1,
-      }}
-      whileHover={{
-        scale: 1.12,
-        y: -4,
-        transition: { type: 'spring', stiffness: 400, damping: 15 },
-      }}
-      whileTap={{ scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 2.3 + index * 0.1 }}
+      whileHover={ICON_HOVER}
+      whileTap={ICON_TAP}
       data-clickable
     >
-      <div className="pdf-icon-graphic">
-        <div className="pdf-icon-page">
-          <div className="pdf-icon-fold" />
-          <div className="pdf-icon-lines">
-            <div /><div /><div /><div />
-          </div>
-          <div className="pdf-icon-badge">PDF</div>
-        </div>
-      </div>
-      <span className="folder-icon-label">Resume.pdf</span>
+      {children}
+      <span className="folder-icon-label">{label}</span>
       <ClickHint show={!clicked} />
     </motion.div>
   )
 }
 
-function ChatIcon({ onClick: onClickProp, index, clicked }) {
-  const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
-
-  return (
-    <motion.div
-      className="folder-icon"
-      style={{ left: 40, top: 380 }}
-      drag
-      dragMomentum={false}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onClick={onClick}
-      initial={{ opacity: 0, scale: 0, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 20,
-        delay: 2.3 + index * 0.1,
-      }}
-      whileHover={{
-        scale: 1.12,
-        y: -4,
-        transition: { type: 'spring', stiffness: 400, damping: 15 },
-      }}
-      whileTap={{ scale: 0.9 }}
-      data-clickable
-    >
-      <div className="chat-icon-graphic">
-        <div className="chat-icon-dots">
-          <span /><span /><span />
-        </div>
-      </div>
-      <span className="folder-icon-label">Ask Ashna</span>
-      <ClickHint show={!clicked} />
-    </motion.div>
-  )
-}
-
-function TerminalIcon({ onClick: onClickProp, index, clicked }) {
-  const { onDragStart, onDragEnd, onClick } = useDragClick(onClickProp)
-
-  return (
-    <motion.div
-      className="folder-icon"
-      style={{ left: 140, top: 270 }}
-      drag
-      dragMomentum={false}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onClick={onClick}
-      initial={{ opacity: 0, scale: 0, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 20,
-        delay: 2.3 + index * 0.1,
-      }}
-      whileHover={{
-        scale: 1.12,
-        y: -4,
-        transition: { type: 'spring', stiffness: 400, damping: 15 },
-      }}
-      whileTap={{ scale: 0.9 }}
-      data-clickable
-    >
-      <div className="terminal-icon-graphic">
-        <div className="terminal-icon-screen">
-          <span className="terminal-icon-prompt">&gt;_</span>
-        </div>
-      </div>
-      <span className="folder-icon-label">Terminal</span>
-      <ClickHint show={!clicked} />
-    </motion.div>
-  )
-}
+// Pre-compute initial z-indices at module scope (not per render)
+const INITIAL_Z = { terminal: 10, resume: 11 }
+BROWSER_PROJECTS.forEach((p, i) => { INITIAL_Z[p.id] = 12 + i })
 
 export default function Desktop({ onFolderOpen }) {
   const [resumeOpen, setResumeOpen] = useState(false)
   const [terminalOpen, setTerminalOpen] = useState(true)
-  const [chatOpen, setChatOpen] = useState(false)
   const [clickedItems, setClickedItems] = useState({})
-
-  // Dynamic state for all browser projects
   const [browserOpen, setBrowserOpen] = useState(
     () => Object.fromEntries(BROWSER_PROJECTS.map((p) => [p.id, false]))
   )
 
   const zCounter = useRef(10)
-  const initialZ = { terminal: 10, resume: 11, chat: 15 }
-  BROWSER_PROJECTS.forEach((p, i) => { initialZ[p.id] = 12 + i })
-  const [zIndices, setZIndices] = useState(initialZ)
+  const [zIndices, setZIndices] = useState(INITIAL_Z)
 
   const bringToFront = useCallback((key) => {
     zCounter.current += 1
     setZIndices((prev) => ({ ...prev, [key]: zCounter.current }))
   }, [])
 
-  const markClicked = (id) => {
+  const markClicked = useCallback((id) => {
     setClickedItems((prev) => ({ ...prev, [id]: true }))
-  }
+  }, [])
 
-  const openBrowser = (id) => {
+  const openBrowser = useCallback((id) => {
     setBrowserOpen((prev) => ({ ...prev, [id]: true }))
     bringToFront(id)
     markClicked(id)
-  }
+  }, [bringToFront, markClicked])
 
-  const closeBrowser = (id) => {
+  const closeBrowser = useCallback((id) => {
     setBrowserOpen((prev) => ({ ...prev, [id]: false }))
-  }
+  }, [])
 
-  const handleFolderClick = (folder, rect) => {
+  const handleFolderClick = useCallback((folder, rect) => {
     const browserProject = BROWSER_PROJECTS.find((p) => p.id === folder.id)
     if (browserProject) {
       openBrowser(folder.id)
@@ -260,38 +124,61 @@ export default function Desktop({ onFolderOpen }) {
       markClicked(folder.id)
       onFolderOpen(folder, rect)
     }
-  }
+  }, [openBrowser, markClicked, onFolderOpen])
 
   return (
     <div className="desktop-area">
+      {/* Folder icons */}
       {FOLDERS.map((folder, i) => (
-        <FolderIcon
+        <DesktopIcon
           key={folder.id}
-          folder={folder}
-          onOpen={handleFolderClick}
+          position={folder.position}
           index={i}
           clicked={!!clickedItems[folder.id]}
-        />
+          className={`folder--${folder.color}`}
+          label={folder.name}
+          onClickAction={(rect) => handleFolderClick(folder, rect)}
+        >
+          <div className="folder-icon-graphic">
+            <div className="folder-tab" />
+            <div className="folder-body" />
+          </div>
+        </DesktopIcon>
       ))}
 
-      <PdfIcon
-        onClick={() => { setResumeOpen(true); bringToFront('resume'); markClicked('resume') }}
+      {/* PDF Resume icon */}
+      <DesktopIcon
+        position={{ x: 140, y: 50 }}
         index={FOLDERS.length}
         clicked={!!clickedItems.resume}
-      />
+        label="Resume.pdf"
+        onClickAction={() => { setResumeOpen(true); bringToFront('resume'); markClicked('resume') }}
+      >
+        <div className="pdf-icon-graphic">
+          <div className="pdf-icon-page">
+            <div className="pdf-icon-fold" />
+            <div className="pdf-icon-lines"><div /><div /><div /><div /></div>
+            <div className="pdf-icon-badge">PDF</div>
+          </div>
+        </div>
+      </DesktopIcon>
 
-      <TerminalIcon
-        onClick={() => { setTerminalOpen(true); bringToFront('terminal'); markClicked('terminal') }}
+      {/* Terminal icon */}
+      <DesktopIcon
+        position={{ x: 140, y: 270 }}
         index={FOLDERS.length + 1}
         clicked={!!clickedItems.terminal}
-      />
+        label="Terminal"
+        onClickAction={() => { setTerminalOpen(true); bringToFront('terminal'); markClicked('terminal') }}
+      >
+        <div className="terminal-icon-graphic">
+          <div className="terminal-icon-screen">
+            <span className="terminal-icon-prompt">&gt;_</span>
+          </div>
+        </div>
+      </DesktopIcon>
 
-      <ChatIcon
-        onClick={() => { setChatOpen(true); bringToFront('chat'); markClicked('chat') }}
-        index={FOLDERS.length + 2}
-        clicked={!!clickedItems.chat}
-      />
-
+      {/* Widgets */}
       <Terminal
         isOpen={terminalOpen}
         onClose={() => setTerminalOpen(false)}
@@ -300,21 +187,18 @@ export default function Desktop({ onFolderOpen }) {
         onFocus={() => bringToFront('terminal')}
       />
 
-      {BROWSER_PROJECTS.map((project, i) => {
-        const pos = BROWSER_POSITIONS[i] || BROWSER_POSITIONS[0]
-        return (
-          <BrowserWidget
-            key={project.id}
-            isOpen={browserOpen[project.id]}
-            onClose={() => closeBrowser(project.id)}
-            url={project.url}
-            title={project.name}
-            style={{ position: 'absolute', left: pos.left, top: pos.top }}
-            zIndex={zIndices[project.id]}
-            onFocus={() => bringToFront(project.id)}
-          />
-        )
-      })}
+      {BROWSER_PROJECTS.map((project, i) => (
+        <BrowserWidget
+          key={project.id}
+          isOpen={browserOpen[project.id]}
+          onClose={() => closeBrowser(project.id)}
+          url={project.url}
+          title={project.name}
+          style={{ position: 'absolute', left: (BROWSER_POSITIONS[i] || BROWSER_POSITIONS[0]).left, top: (BROWSER_POSITIONS[i] || BROWSER_POSITIONS[0]).top }}
+          zIndex={zIndices[project.id]}
+          onFocus={() => bringToFront(project.id)}
+        />
+      ))}
 
       <ResumeViewer
         isOpen={resumeOpen}
@@ -322,14 +206,6 @@ export default function Desktop({ onFolderOpen }) {
         style={{ position: 'absolute', right: 30, top: 310 }}
         zIndex={zIndices.resume}
         onFocus={() => bringToFront('resume')}
-      />
-
-      <ChatWidget
-        isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
-        style={{ position: 'absolute', left: 350, top: 60 }}
-        zIndex={zIndices.chat}
-        onFocus={() => bringToFront('chat')}
       />
 
       {STICKY_NOTES.map((note) => (

@@ -1,7 +1,6 @@
 import { Sandbox } from '@e2b/code-interpreter';
 import { env } from '../config/env.js';
-
-const EXECUTION_TIMEOUT_MS = 30_000;
+import { SANDBOX_TIMEOUT_MS } from '../config/constants.js';
 
 export interface SandboxResult {
   success: boolean;
@@ -36,7 +35,7 @@ export async function executeSandbox(
 
   const sandbox = await Sandbox.create({
     apiKey: env.E2B_API_KEY,
-    timeoutMs: EXECUTION_TIMEOUT_MS,
+    timeoutMs: SANDBOX_TIMEOUT_MS,
   });
 
   try {
@@ -80,10 +79,14 @@ export async function executeSandbox(
  * Only approved modules and functions are available.
  */
 function buildSetupCode(data: Record<string, unknown>): string {
+  // Use base64 encoding to safely inject arbitrary JSON into Python
+  // This avoids all string escaping issues with quotes, backslashes, etc.
   const dataJson = JSON.stringify(data);
+  const base64Data = Buffer.from(dataJson, 'utf-8').toString('base64');
 
   return `
 import json
+import base64
 from datetime import datetime, timedelta
 from collections import Counter, defaultdict
 import statistics
@@ -92,7 +95,7 @@ import re
 # ============================================================
 # Injected data from the agent's tool calls
 # ============================================================
-DATA = json.loads('''${dataJson.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}''')
+DATA = json.loads(base64.b64decode("${base64Data}").decode("utf-8"))
 
 # ============================================================
 # Helper functions

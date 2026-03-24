@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { CACHE_TTL_SHORT } from '../config/constants.js';
 
 /**
  * Raw response type from the Eternal Entries journal stats API.
@@ -54,7 +55,7 @@ export interface JournalStats {
     entriesWithReflections: number;
     entriesWithTasks: number;
   };
-  habits: unknown;
+  habits: Record<string, unknown> | null;
 }
 
 // ============================================================
@@ -89,7 +90,6 @@ export interface JournalInfoResponse {
 }
 
 let cachedStats: { data: JournalStats; fetchedAt: number } | null = null;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Fetches journal stats from the Eternal Entries API.
@@ -101,7 +101,7 @@ export async function fetchJournalStats(): Promise<JournalStats> {
   }
 
   // Return cached data if fresh
-  if (cachedStats && Date.now() - cachedStats.fetchedAt < CACHE_TTL_MS) {
+  if (cachedStats && Date.now() - cachedStats.fetchedAt < CACHE_TTL_SHORT) {
     return cachedStats.data;
   }
 
@@ -120,7 +120,10 @@ export async function fetchJournalStats(): Promise<JournalStats> {
   return data;
 }
 
-const JOURNAL_INFO_BASE = 'https://veorhexddrwlwxtkuycb.supabase.co/functions/v1/journal-info';
+function getJournalInfoBase(): string {
+  if (!env.JOURNAL_API_URL) throw new Error('JOURNAL_API_URL not configured');
+  return env.JOURNAL_API_URL.replace('journal-stats', 'journal-info');
+}
 
 /**
  * Fetches journal entry metadata for a specific date (or year/month).
@@ -144,7 +147,7 @@ export async function fetchJournalEntries(params: {
     throw new Error('At least one of year, month, or day is required');
   }
 
-  const url = `${JOURNAL_INFO_BASE}?${searchParams.toString()}`;
+  const url = `${getJournalInfoBase()}?${searchParams.toString()}`;
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${env.JOURNAL_API_KEY}` },
   });

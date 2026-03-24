@@ -88,6 +88,7 @@ export interface AgentContext {
 // Streaming types
 // ============================================================
 export type StreamEvent =
+  | { type: 'session'; data: string }
   | { type: 'plan'; data: AgentPlan }
   | { type: 'tool_call'; data: ToolCall }
   | { type: 'tool_result'; data: { name: string; result: ToolResult } }

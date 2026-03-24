@@ -1,33 +1,182 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
-import { TERMINAL_BIO } from '../data/siteConfig'
+import { PROFILE } from '../data/siteConfig'
+
+const API_URL = import.meta.env.VITE_CHAT_API_URL || 'http://localhost:3001'
+
+const WELCOME_LINES = [
+  { type: 'system', text: `Welcome to ${PROFILE.name.split(' ')[0].toLowerCase()}@portfolio ~ $` },
+  { type: 'response', text: `Hey, I'm ${PROFILE.name} — ask me anything.` },
+  { type: 'response', text: 'Try: "what do you do?", "tell me about your projects"' },
+  { type: 'system', text: '' },
+]
 
 export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
   const dragControls = useDragControls()
-  const [visibleLines, setVisibleLines] = useState([])
-  const [currentChar, setCurrentChar] = useState(0)
-  const [lineIndex, setLineIndex] = useState(0)
+  const [lines, setLines] = useState(WELCOME_LINES)
+  const [input, setInput] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [sessionId, setSessionId] = useState(null)
+  const bodyRef = useRef(null)
+  const inputRef = useRef(null)
+  const pendingRef = useRef(null)
+  const rafRef = useRef(null)
+
+  const scrollToBottom = () => {
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight
+    }
+  }
 
   useEffect(() => {
-    if (!isOpen) return
-    if (lineIndex >= TERMINAL_BIO.length) return
+    scrollToBottom()
+  }, [lines, isStreaming])
 
-    const line = TERMINAL_BIO[lineIndex]
-    if (currentChar < line.text.length) {
-      const speed = line.prompt ? 60 : 25
-      const timer = setTimeout(() => setCurrentChar((c) => c + 1), speed)
-      return () => clearTimeout(timer)
-    } else {
-      const timer = setTimeout(() => {
-        setVisibleLines((prev) => [...prev, line])
-        setCurrentChar(0)
-        setLineIndex((i) => i + 1)
-      }, line.prompt ? 400 : 150)
-      return () => clearTimeout(timer)
+  useEffect(() => {
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 300)
+  }, [isOpen])
+
+  const sendMessage = useCallback(async () => {
+    const text = input.trim()
+    if (!text || isStreaming) return
+
+    // Add user input line
+    setLines(prev => [...prev, { type: 'prompt', text }])
+    setInput('')
+    setIsStreaming(true)
+
+    // Add empty response line that we'll stream into
+    const responseId = Date.now()
+    setLines(prev => [...prev, { type: 'response', text: '', id: responseId }])
+
+    try {
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          ...(sessionId && { sessionId }),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
+      })
+
+      if (!response.ok) throw new Error(`Server error: ${response.status}`)
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response body')
+
+      const decoder = new TextDecoder()
+      let content = ''
+      let sources = []
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const eventLines = buffer.split('\n')
+        buffer = eventLines.pop() || ''
+
+        for (const line of eventLines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            switch (event.type) {
+              case 'session':
+                setSessionId(event.data)
+                break
+              case 'token':
+                content += event.data
+                // Batch updates via rAF
+                pendingRef.current = content
+                if (!rafRef.current) {
+                  rafRef.current = requestAnimationFrame(() => {
+                    rafRef.current = null
+                    const c = pendingRef.current
+                    if (c !== null) {
+                      setLines(prev => prev.map(l => l.id === responseId ? { ...l, text: c } : l))
+                    }
+                  })
+                }
+                break
+              case 'sources':
+                sources = event.data
+                break
+              case 'done':
+                // Final flush
+                if (rafRef.current) cancelAnimationFrame(rafRef.current)
+                rafRef.current = null
+                setLines(prev => {
+                  const updated = prev.map(l => l.id === responseId ? { ...l, text: content } : l)
+                  if (sources.length > 0) {
+                    updated.push({ type: 'source', text: `[sources: ${sources.join(', ')}]` })
+                  }
+                  return updated
+                })
+                pendingRef.current = null
+                break
+              case 'error':
+                setLines(prev => prev.map(l =>
+                  l.id === responseId ? { ...l, text: 'Error: something went wrong. Try again.' } : l
+                ))
+                break
+            }
+          } catch { /* skip malformed events */ }
+        }
+      }
+    } catch (err) {
+      setLines(prev => prev.map(l =>
+        l.id === responseId ? { ...l, text: "Couldn't connect to the server. Is it running?" } : l
+      ))
+    } finally {
+      setIsStreaming(false)
+      setLines(prev => [...prev, { type: 'system', text: '' }])
+      setTimeout(() => inputRef.current?.focus(), 50)
     }
-  }, [lineIndex, currentChar, isOpen])
+  }, [input, isStreaming, sessionId])
 
-  const currentLine = lineIndex < TERMINAL_BIO.length ? TERMINAL_BIO[lineIndex] : null
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  const renderLine = (line, i) => {
+    switch (line.type) {
+      case 'prompt':
+        return (
+          <div key={i} className="terminal-line">
+            <span className="terminal-prompt">~ $ </span>
+            <span className="terminal-command">{line.text}</span>
+          </div>
+        )
+      case 'response':
+        // Hide empty response lines during streaming (thinking indicator handles that)
+        if (isStreaming && line.id && !line.text) return null
+        return (
+          <div key={line.id || i} className="terminal-line">
+            <span className="terminal-response">{line.text}</span>
+            {isStreaming && line.id && <span className="terminal-cursor" />}
+          </div>
+        )
+      case 'source':
+        return (
+          <div key={i} className="terminal-line">
+            <span className="terminal-source">{line.text}</span>
+          </div>
+        )
+      case 'system':
+        return line.text ? (
+          <div key={i} className="terminal-line">
+            <span className="terminal-system">{line.text}</span>
+          </div>
+        ) : <div key={i} className="terminal-line-spacer" />
+      default:
+        return null
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -51,34 +200,35 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
             style={{ cursor: 'grab', touchAction: 'none' }}
           >
             <div className="window-dots">
-              <div
-                className="window-dot window-dot--close"
-                onClick={onClose}
-                data-clickable
-              />
+              <div className="window-dot window-dot--close" onClick={onClose} data-clickable />
             </div>
+            <span className="terminal-header-title">ask-{PROFILE.name.split(' ')[0].toLowerCase()}</span>
+            <div style={{ width: 24 }} />
           </div>
-          <div className="terminal-body">
-            {visibleLines.map((line, i) => (
-              <div key={i}>
-                {line.prompt && <span className="terminal-prompt">~ $ </span>}
-                {!line.prompt && <span>  </span>}
-                <span className={line.prompt ? 'terminal-command' : 'terminal-response'}>{line.text}</span>
-              </div>
-            ))}
-            {currentLine && (
-              <div>
-                {currentLine.prompt && <span className="terminal-prompt">~ $ </span>}
-                {!currentLine.prompt && <span>  </span>}
-                <span className={currentLine.prompt ? 'terminal-command' : 'terminal-response'}>
-                  {currentLine.text.slice(0, currentChar)}
-                </span>
-                <span className="terminal-cursor" />
+          <div className="terminal-body" ref={bodyRef} onClick={() => inputRef.current?.focus()}>
+            {lines.map(renderLine)}
+
+            {/* Active input line */}
+            {!isStreaming && (
+              <div className="terminal-line terminal-input-line">
+                <span className="terminal-prompt">~ $ </span>
+                <input
+                  ref={inputRef}
+                  className="terminal-input"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="ask me anything..."
+                  disabled={isStreaming}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
               </div>
             )}
-            {lineIndex >= TERMINAL_BIO.length && (
-              <div>
-                <span className="terminal-prompt">~ $ </span>
+            {isStreaming && !lines.some(l => l.id && l.text) && (
+              <div className="terminal-line">
+                <span className="terminal-prompt">~ </span>
+                <span className="terminal-thinking">thinking</span>
                 <span className="terminal-cursor" />
               </div>
             )}

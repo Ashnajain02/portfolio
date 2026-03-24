@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { PROFILE, DOCK_LINKS } from '../data/siteConfig'
 
 const MENU_ITEMS = [
   { id: 'about', label: 'About This Portfolio', icon: '~' },
@@ -35,8 +36,8 @@ export default function ContextMenu({ x, y, onClose, onAction }) {
             data-clickable
             onClick={() => {
               if (item.id === 'refresh') window.location.reload()
-              else if (item.id === 'github') window.open('https://github.com/ashnajain02', '_blank')
-              else if (item.id === 'contact') window.location.href = 'mailto:ashnajain02@gmail.com'
+              else if (item.id === 'github') window.open(PROFILE.github, '_blank')
+              else if (item.id === 'contact') window.location.href = DOCK_LINKS.email
               else onAction(item.id)
             }}
             whileHover={{ x: 2, backgroundColor: 'var(--accent-warm)', color: 'white' }}

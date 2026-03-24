@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { PROFILE } from '../data/siteConfig'
 
 const letterVariants = {
   hidden: { y: 40, opacity: 0, rotateX: -90 },
@@ -25,7 +26,7 @@ const letterVariants = {
 }
 
 export default function Splash({ onComplete }) {
-  const name = 'Ashna Jain'
+  const name = PROFILE.name
   const subtitle = 'Welcome to my desktop'
 
   return (

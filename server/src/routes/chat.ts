@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { runAgent } from '../agent/agent.js';
 import { createSession, getSession } from '../agent/memory.js';
+import { getErrorMessage } from '../utils/errors.js';
 import type { StreamEvent } from '../types/index.js';
 
 export const chatRouter = Router();
@@ -9,6 +10,7 @@ export const chatRouter = Router();
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
   sessionId: z.string().optional(),
+  timezone: z.string().optional(),
 });
 
 /**
@@ -26,7 +28,7 @@ chatRouter.post('/', async (req: Request, res: Response) => {
     return;
   }
 
-  const { message, sessionId: requestedSessionId } = parsed.data;
+  const { message, sessionId: requestedSessionId, timezone } = parsed.data;
 
   // Resolve or create session
   let session = requestedSessionId ? getSession(requestedSessionId) : undefined;
@@ -41,17 +43,23 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   res.setHeader('X-Session-Id', session.id);
   res.flushHeaders();
 
+  // Track client disconnect to avoid wasting resources
+  let clientDisconnected = false;
+  res.on('close', () => { clientDisconnected = true; });
+
   // Send session ID as first event
   sendEvent(res, { type: 'session', data: session.id });
 
   const onStream = (event: StreamEvent) => {
+    if (clientDisconnected) return;
     sendEvent(res, event);
   };
 
   try {
-    await runAgent(session.id, message, onStream);
+    await runAgent(session.id, message, onStream, timezone);
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    if (clientDisconnected) return;
+    const errorMsg = getErrorMessage(err);
     console.error('[chat] Agent error:', errorMsg);
     sendEvent(res, { type: 'error', data: errorMsg });
   } finally {
@@ -59,14 +67,11 @@ chatRouter.post('/', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /api/chat/health
- * Simple health check endpoint.
- */
-chatRouter.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 function sendEvent(res: Response, event: { type: string; data: unknown }): void {
-  res.write(`data: ${JSON.stringify(event)}\n\n`);
+  const payload = `data: ${JSON.stringify(event)}\n\n`;
+  const written = res.write(payload);
+  if (!written) {
+    console.warn(`[sse] Back-pressure on event type: ${event.type}`);
+  }
 }

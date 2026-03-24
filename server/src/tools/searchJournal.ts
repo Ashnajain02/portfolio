@@ -1,6 +1,8 @@
 import { toolRegistry } from './registry.js';
 import { fetchJournalStats, fetchJournalEntries, formatJournalStats, formatJournalEntry } from '../data/journal.js';
+import type { JournalStats } from '../data/journal.js';
 import type { ToolDefinition } from '../types/index.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 const searchJournalStats: ToolDefinition = {
   name: 'searchJournal',
@@ -37,7 +39,7 @@ const searchJournalStats: ToolDefinition = {
         };
       }
 
-      const categoryData = (stats as Record<string, unknown>)[category];
+      const categoryData = (stats as unknown as Record<string, unknown>)[category];
       return {
         success: true,
         data: {
@@ -48,7 +50,7 @@ const searchJournalStats: ToolDefinition = {
         source: 'journal',
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getErrorMessage(err);
       return { success: false, data: null, source: 'journal', error: message };
     }
   },
@@ -119,13 +121,13 @@ const getJournalEntry: ToolDefinition = {
         source: 'journal',
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getErrorMessage(err);
       return { success: false, data: null, source: 'journal', error: message };
     }
   },
 };
 
-function formatCategoryContext(category: string, stats: any): string {
+function formatCategoryContext(category: string, stats: JournalStats): string {
   switch (category) {
     case 'activity':
       return `${stats.activity.totalEntries} total entries across ${stats.activity.totalDaysJournaled} days. Last entry: ${stats.activity.lastEntryDate}. First entry: ${stats.activity.firstEntryDate}. ${stats.activity.entriesThisWeek} this week. Average ${stats.activity.avgEntriesPerWeek}/week.`;

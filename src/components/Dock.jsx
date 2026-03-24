@@ -38,7 +38,7 @@ const DOCK_ITEMS = [
   },
 ]
 
-function DockItem({ item, mouseX }) {
+function DockItem({ item, mouseX, index }) {
   const ref = useRef(null)
   const [hovered, setHovered] = useState(false)
 
@@ -73,7 +73,7 @@ function DockItem({ item, mouseX }) {
         type: 'spring',
         stiffness: 200,
         damping: 15,
-        delay: 2.4 + DOCK_ITEMS.indexOf(item) * 0.1,
+        delay: 2.4 + index * 0.1,
       }}
     >
       <AnimatePresence>
@@ -110,8 +110,8 @@ export default function Dock() {
       onMouseLeave={() => mouseX.set(Infinity)}
     >
       <div className="dock">
-        {DOCK_ITEMS.map((item) => (
-          <DockItem key={item.id} item={item} mouseX={mouseX} />
+        {DOCK_ITEMS.map((item, i) => (
+          <DockItem key={item.id} item={item} mouseX={mouseX} index={i} />
         ))}
       </div>
     </motion.div>

@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { MAX_PAGINATION_PAGES } from '../config/constants.js';
 import { createDocument, chunkText } from './normalize.js';
 import type { DataDocument } from '../types/index.js';
 
@@ -78,7 +79,7 @@ async function fetchAllPosts(): Promise<BeehiivPost[]> {
     };
 
     posts.push(...data.data);
-    hasMore = page < data.total_pages;
+    hasMore = page < data.total_pages && page < MAX_PAGINATION_PAGES;
     page++;
   }
 

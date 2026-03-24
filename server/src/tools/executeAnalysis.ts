@@ -3,6 +3,7 @@ import { executeSandbox } from '../sandbox/executor.js';
 import { fetchJournalStats, fetchJournalEntries } from '../data/journal.js';
 import { fetchRepos, fetchRecentCommits, fetchProfile } from '../data/github.js';
 import { getResumeRaw } from '../data/resume.js';
+import { getErrorMessage } from '../utils/errors.js';
 import type { ToolDefinition } from '../types/index.js';
 
 /**
@@ -191,7 +192,7 @@ const executeAnalysis: ToolDefinition = {
         source: 'general',
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getErrorMessage(err);
       return {
         success: false,
         data: null,

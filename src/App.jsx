@@ -7,6 +7,7 @@ import FolderWindow from './components/FolderWindow'
 import Splash from './components/Splash'
 import ContextMenu from './components/ContextMenu'
 import Notification from './components/Notification'
+import { PROFILE } from './data/siteConfig'
 
 export const AppContext = createContext()
 
@@ -110,7 +111,6 @@ export default function App() {
               key={notif.id}
               title={notif.title}
               message={notif.message}
-              index={i}
               onDismiss={() => dismissNotification(notif.id)}
             />
           ))}
@@ -129,7 +129,7 @@ export default function App() {
               if (action === 'about') {
                 setNotifications((prev) => [
                   ...prev,
-                  { id: Date.now(), title: 'About', message: 'Built with React + Framer Motion by Ashna Jain' },
+                  { id: Date.now(), title: 'About', message: `Built with React + Framer Motion by ${PROFILE.name}` },
                 ])
               }
             }}

@@ -1,5 +1,6 @@
 import { toolRegistry } from './registry.js';
-import { fetchProfile, fetchRepos, fetchRecentCommits, getGitHubSummary } from '../data/github.js';
+import { fetchRepos, fetchRecentCommits, getGitHubSummary } from '../data/github.js';
+import { getErrorMessage } from '../utils/errors.js';
 import type { ToolDefinition } from '../types/index.js';
 
 const searchGithub: ToolDefinition = {
@@ -88,7 +89,7 @@ const searchGithub: ToolDefinition = {
           };
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getErrorMessage(err);
       return {
         success: false,
         data: null,

@@ -135,6 +135,17 @@ export function getResumeDocuments(): DataDocument[] {
     tags: ['contact', 'education', 'overview'],
   }));
 
+  // Education
+  docs.push(createDocument('resume', [
+    `Education: ${RESUME_DATA.education.degree} at ${RESUME_DATA.education.school}, ${RESUME_DATA.education.location}.`,
+    `GPA: ${RESUME_DATA.education.gpa}.`,
+    `Ashna studied Computer Science at UMass Amherst in the Commonwealth Honors College.`,
+  ].join(' '), {
+    category: 'education',
+    title: 'Education',
+    tags: ['education', 'university', 'school', 'degree', 'computer science'],
+  }));
+
   // Each experience entry
   for (const exp of RESUME_DATA.experience) {
     const text = [

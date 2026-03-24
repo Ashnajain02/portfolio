@@ -1,8 +1,6 @@
 import type { ChatMessage, ChatSession } from '../types/index.js';
 import { v4 as uuid } from 'uuid';
-
-const MAX_CONTEXT_MESSAGES = 20;
-const MAX_TOKEN_ESTIMATE = 6000; // Rough char-based estimate (4 chars ≈ 1 token)
+import { MAX_CONTEXT_MESSAGES, MAX_TOKEN_ESTIMATE_CHARS } from '../config/constants.js';
 
 /**
  * In-memory session store. For production, swap with Redis or DB.
@@ -49,22 +47,24 @@ export function getContextMessages(sessionId: string): ChatMessage[] {
   const messages = session.messages;
   if (messages.length <= MAX_CONTEXT_MESSAGES) return [...messages];
 
-  // Keep the most recent messages that fit within budget
-  const recent: ChatMessage[] = [];
+  // Keep the most recent messages that fit within the token budget.
+  // Build in reverse, then reverse once — O(n) instead of O(n²) unshift.
+  const reversed: ChatMessage[] = [];
   let charCount = 0;
 
   for (let i = messages.length - 1; i >= 0; i--) {
     const msgChars = messages[i].content.length;
-    if (charCount + msgChars > MAX_TOKEN_ESTIMATE * 4 && recent.length > 2) break;
-    recent.unshift(messages[i]);
+    if (charCount + msgChars > MAX_TOKEN_ESTIMATE_CHARS && reversed.length > 2) break;
+    reversed.push(messages[i]);
     charCount += msgChars;
   }
 
-  return recent;
+  reversed.reverse();
+  return reversed;
 }
 
 function truncateSession(session: ChatSession): void {
-  // Keep first message (often system context) + last N messages
+  // Keep last N messages (discards oldest)
   const keep = MAX_CONTEXT_MESSAGES;
   if (session.messages.length > keep) {
     session.messages = session.messages.slice(-keep);

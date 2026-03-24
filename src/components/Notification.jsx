@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 
-export default function Notification({ title, message, index, onDismiss }) {
+export default function Notification({ title, message, onDismiss }) {
   useEffect(() => {
     const timer = setTimeout(onDismiss, 5000)
     return () => clearTimeout(timer)

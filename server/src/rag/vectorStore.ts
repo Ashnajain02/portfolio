@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { env } from '../config/env.js';
-import { EMBEDDING_DIMENSIONS } from './embeddings.js';
+import { EMBEDDING_DIMENSIONS } from '../config/constants.js';
 import type { DataDocument, DataSource, SearchResult } from '../types/index.js';
 
 const { Pool } = pg;
@@ -125,7 +125,7 @@ export async function searchSimilar(
 
   const result = await db.query(query, params);
 
-  return result.rows.map((row: any) => ({
+  return result.rows.map((row: { id: string; source: string; content: string; metadata: Record<string, unknown>; score: string }) => ({
     document: {
       id: row.id,
       source: row.source as DataSource,
@@ -154,7 +154,7 @@ export async function getDocumentCounts(): Promise<Record<string, number>> {
   const result = await db.query(
     'SELECT source, COUNT(*) as count FROM documents GROUP BY source',
   );
-  return Object.fromEntries(result.rows.map((r: any) => [r.source, parseInt(r.count)]));
+  return Object.fromEntries(result.rows.map((r: { source: string; count: string }) => [r.source, parseInt(r.count)]));
 }
 
 export async function closePool(): Promise<void> {

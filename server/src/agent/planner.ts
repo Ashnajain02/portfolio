@@ -1,9 +1,6 @@
-import OpenAI from 'openai';
-import { env } from '../config/env.js';
-import { toolRegistry } from '../tools/registry.js';
+import { openai } from '../config/openai.js';
+import { PLANNER_MODEL } from '../config/constants.js';
 import type { AgentPlan, QueryComplexity } from '../types/index.js';
-
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
 const PLANNER_PROMPT = `You are a query router for an AI assistant that represents Ashna Jain.
 Your job is to analyze the user's question and decide the best strategy to answer it.
@@ -37,7 +34,7 @@ Respond with JSON only:
 export async function planQuery(userMessage: string): Promise<AgentPlan> {
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: PLANNER_MODEL,
       messages: [
         { role: 'system', content: PLANNER_PROMPT },
         { role: 'user', content: userMessage },
@@ -53,11 +50,12 @@ export async function planQuery(userMessage: string): Promise<AgentPlan> {
     }
 
     const parsed = JSON.parse(content);
+    const complexity = parsed.complexity === 'complex' ? 'complex' : 'simple';
     return {
-      complexity: parsed.complexity as QueryComplexity,
-      reasoning: parsed.reasoning ?? '',
+      complexity,
+      reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : '',
       tools: Array.isArray(parsed.tools) ? parsed.tools : ['searchResume'],
-      strategy: parsed.strategy ?? '',
+      strategy: typeof parsed.strategy === 'string' ? parsed.strategy : '',
     };
   } catch {
     return defaultPlan();

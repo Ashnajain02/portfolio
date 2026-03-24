@@ -1,4 +1,5 @@
 import type { ToolDefinition, ToolResult } from '../types/index.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 /**
  * Central tool registry. All tools register here and are
@@ -32,7 +33,7 @@ class ToolRegistry {
     try {
       return await tool.execute(args);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getErrorMessage(err);
       return {
         success: false,
         data: null,
