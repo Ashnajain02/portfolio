@@ -3,20 +3,27 @@ import { openai } from '../config/openai.js';
 import { AGENT_MODEL, MAX_TOOL_ITERATIONS } from '../config/constants.js';
 import { toolRegistry } from '../tools/registry.js';
 import { planQuery } from './planner.js';
+import { retrieve } from '../rag/retriever.js';
 import { getContextMessages, addMessage } from './memory.js';
 import type { StreamEvent } from '../types/index.js';
 
-function getSystemPrompt(timezone?: string): string {
+const MIN_RAG_SCORE = 0.3;
+
+function getSystemPrompt(timezone?: string, ragContext?: string): string {
   const tz = timezone || 'UTC';
   const now = new Date();
   const localDate = now.toLocaleDateString('en-US', { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric' });
   const localTime = now.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true });
 
+  const contextBlock = ragContext
+    ? `\n\nRetrieved context (use this to answer — these are verified facts):\n${ragContext}`
+    : '\n\nNo relevant context was found in the knowledge base.';
+
   return `You are an AI version of Ashna Jain — a software engineer who builds full-stack products that solve real problems. You speak in first person as Ashna.
 
 Today's date: ${localDate} (${localTime}). Viewer's timezone: ${tz}.
-NEVER reference dates in the future. When displaying times, convert from UTC to the viewer's timezone (${tz}).
-All timestamps from tools are in UTC — you MUST convert them before displaying.
+When displaying times, convert from UTC to ${tz}.
+${contextBlock}
 
 Style:
 - This is a TERMINAL. Keep responses SHORT — 2-4 sentences max.
@@ -25,22 +32,22 @@ Style:
 - Friendly but brief. Think text message, not essay.
 
 STRICT Rules:
-- ALWAYS use tools to look up info before answering. Do NOT make up details.
-- If the data doesn't contain the answer, say "I don't have that info" in one sentence. NEVER fabricate or guess names, dates, numbers, places, or events.
-- ONLY state facts that appear VERBATIM in tool results. If a tool says "2nd place at SF Tech Week Hackathon", say exactly that — do not change it to a different hackathon name or place.
-- If the user corrects you, search again with the corrected info. Do not guess.
-- Cite specifics ONLY from tool results. If you're unsure, say so.
+- Answer ONLY using the retrieved context above and/or tool results. These are your sources of truth.
+- If neither context nor tools contain the answer, say "I don't have that info." NEVER fabricate or guess names, dates, numbers, places, or events.
+- ONLY state facts that appear VERBATIM in context or tool results.
+- If the user corrects you, acknowledge it — do not argue.
 - NEVER reference dates in the future.`;
 }
 
 export type StreamCallback = (event: StreamEvent) => void;
 
 /**
- * Main agent loop. Processes a user message through:
- * 1. Planning — decide query complexity and tools
- * 2. Tool execution — call tools as directed by the LLM
- * 3. Reflection — LLM processes tool results
- * 4. Answer — stream final response
+ * Main agent loop:
+ * 1. Pre-fetch RAG — embed query, search all sources
+ * 2. Plan — planner sees RAG results, decides if live tools needed
+ * 3. LLM call — with RAG in system prompt + only selected tools
+ * 4. Tool loop — if LLM calls tools, execute and loop
+ * 5. Stream response
  */
 export async function runAgent(
   sessionId: string,
@@ -56,24 +63,54 @@ export async function runAgent(
     timestamp: Date.now(),
   });
 
-  // Step 1: Plan — select relevant tools
-  const plan = await planQuery(userMessage);
+  // Step 1: Pre-fetch RAG — search ALL embedded sources
+  const ragResults = await retrieve(userMessage, {
+    limit: 5,
+    threshold: 0.2,
+  });
+
+  // Filter to only quality results
+  const qualityResults = ragResults.filter(r => r.score >= MIN_RAG_SCORE);
+
+  // Build RAG context string for the system prompt
+  const ragContext = qualityResults.length > 0
+    ? qualityResults.map((r, i) =>
+        `[${i + 1}] (${r.document.source}${r.document.metadata.title ? ': ' + r.document.metadata.title : ''}, score: ${r.score.toFixed(2)})\n${r.document.content}`
+      ).join('\n\n')
+    : '';
+
+  // Track RAG sources
+  for (const r of qualityResults) {
+    sources.add(r.document.source);
+  }
+
+  // Build RAG summary for planner (shorter than full context)
+  const ragSummary = qualityResults.length > 0
+    ? qualityResults.map(r => `[${r.document.source}] ${r.document.content.slice(0, 150)}`).join('\n')
+    : '';
+
+  // Step 2: Plan — planner decides if tools are needed
+  const plan = await planQuery(userMessage, ragSummary);
   onStream({ type: 'plan', data: plan });
 
-  // Step 2: Build context and filter tools based on plan
+  // Step 3: Build LLM messages with RAG baked into system prompt
   const contextMessages = getContextMessages(sessionId);
 
   const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: 'system', content: getSystemPrompt(timezone) },
+    { role: 'system', content: getSystemPrompt(timezone, ragContext) },
     ...contextMessages.map(m => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
   ];
 
-  // Only send the tools the planner selected — reduces tokens and improves accuracy
+  // Only include tools the planner selected (or none if RAG is sufficient)
   const allTools = toolRegistry.getOpenAITools();
-  const tools = allTools.filter(t => plan.tools.includes(t.function.name));
+  const tools = plan.tools.length > 0
+    ? allTools.filter(t => plan.tools.includes(t.function.name))
+    : [];
+
+  // Step 4: LLM call with streaming + optional tool loop
   let iterations = 0;
   let finalContent = '';
 
@@ -162,6 +199,7 @@ export async function runAgent(
     }
   }
 
+  // Stream sources
   const sourceList = Array.from(sources);
   if (sourceList.length > 0) {
     onStream({ type: 'sources', data: sourceList });

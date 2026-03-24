@@ -2,52 +2,58 @@ import { openai } from '../config/openai.js';
 import { PLANNER_MODEL } from '../config/constants.js';
 import type { AgentPlan } from '../types/index.js';
 
-const PLANNER_PROMPT = `You are a query router for an AI assistant that represents Ashna Jain.
-Analyze the user's question and select which tools to use.
+/**
+ * The planner sees the user question + RAG results summary and decides:
+ * 1. Whether RAG alone is sufficient to answer
+ * 2. Which live tools (if any) are needed
+ */
+const PLANNER_PROMPT = `You are a query router. Given a user question and retrieved context, decide what additional data is needed.
 
-Available tools:
-- searchResume: Semantic search over resume (experience, skills, awards, education)
-- searchJournal: Aggregated journaling stats (moods, streaks, music, weather, activity)
-- getJournalEntry: Per-date journal entry metadata (mood, weather, song, location)
-- searchGithub: GitHub profile, repos, commits, and README content for any repo
-- searchNewsletter: Semantic search over "Undercover Agents" newsletter articles
-- searchKnowledge: Personal knowledge base (philosophy, motivations, career goals, detailed stories)
-- correlateActivity: Cross-reference GitHub commits with journal entries (overlapping days, mood on coding days, day-of-week patterns)
+Available LIVE tools (only select these if the retrieved context is NOT sufficient):
+- searchJournal: Fetch aggregated journaling stats (mood trends, streaks, activity counts, last entry date)
+- getJournalEntry: Fetch journal entry details for a specific date (mood, weather, song, location)
+- searchGithub: Fetch GitHub profile, repos, commits, or README content
+- correlateActivity: Cross-reference GitHub commits with journal entries (overlapping days, mood on coding days)
 
 Rules:
-- Select 2-3 tools. When in doubt, include MORE tools — it's better to have extra context than miss information.
-- ALWAYS include searchKnowledge for any question about Ashna personally, her projects, opinions, or background.
-- For questions about specific projects (Echo, Twix, Shift Up, etc.), include searchKnowledge AND searchGithub AND searchResume.
-- For hackathon/award questions, include searchResume AND searchKnowledge.
-- For cross-source questions (coding + journaling), use correlateActivity.
-- For "when did I last journal" + details, use searchJournal then getJournalEntry.
-- For newsletter/AI topics, include searchNewsletter AND searchKnowledge.
+- If the retrieved context already answers the question fully, set needsTools to false.
+- If the question asks about LIVE/current data (journal stats, GitHub repos, recent activity), set needsTools to true.
+- Select at most 2 tools. Only select what's truly needed.
+- For "when did I last journal" → searchJournal + getJournalEntry
+- For "what repos do I have" → searchGithub
+- For cross-source (coding + journaling patterns) → correlateActivity
+- For questions about personal background, projects, experience, newsletter → usually RAG is enough.
 
 Respond with JSON only:
 {
-  "tools": ["tool1", "tool2"],
+  "needsTools": true/false,
+  "tools": ["tool1"],
   "reasoning": "brief explanation"
 }`;
 
-export async function planQuery(userMessage: string): Promise<AgentPlan> {
+export async function planQuery(
+  userMessage: string,
+  ragSummary: string,
+): Promise<AgentPlan> {
   try {
     const response = await openai.chat.completions.create({
       model: PLANNER_MODEL,
       messages: [
         { role: 'system', content: PLANNER_PROMPT },
-        { role: 'user', content: userMessage },
+        { role: 'user', content: `Question: ${userMessage}\n\nRetrieved context:\n${ragSummary || '(no relevant documents found)'}` },
       ],
       response_format: { type: 'json_object' },
       temperature: 0,
-      max_tokens: 200,
+      max_tokens: 150,
     });
 
     const content = response.choices[0]?.message?.content;
     if (!content) return defaultPlan();
 
     const parsed = JSON.parse(content);
+    const needsTools = parsed.needsTools === true;
     return {
-      tools: Array.isArray(parsed.tools) && parsed.tools.length > 0 ? parsed.tools : defaultPlan().tools,
+      tools: needsTools && Array.isArray(parsed.tools) ? parsed.tools : [],
       reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : '',
     };
   } catch {
@@ -57,7 +63,7 @@ export async function planQuery(userMessage: string): Promise<AgentPlan> {
 
 function defaultPlan(): AgentPlan {
   return {
-    tools: ['searchResume', 'searchKnowledge'],
-    reasoning: 'Default: search resume and knowledge base',
+    tools: [],
+    reasoning: 'Default: use RAG context only',
   };
 }
