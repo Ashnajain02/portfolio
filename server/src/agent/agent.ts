@@ -72,9 +72,9 @@ export async function runAgent(
   const ragContext = ragResults.length > 0
     ? ragResults.map((r, i) => {
         const meta = r.document.metadata;
+        const ref = meta.sourceRef ? ` | ${meta.sourceRef}` : '';
         const date = meta.timestamp ? ` | ${meta.timestamp.toString().slice(0, 10)}` : '';
-        const title = meta.title ? `: ${meta.title}` : '';
-        return `[${i + 1}] (${r.document.source}${title}${date})\n${r.document.content}`;
+        return `[${i + 1}] (${r.document.source}${ref}${date})\n${r.document.content}`;
       }).join('\n\n')
     : '';
 

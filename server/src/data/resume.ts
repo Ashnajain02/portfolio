@@ -1,4 +1,4 @@
-import { createDocument, chunkText } from './normalize.js';
+import { createDocument, chunkText, extractKeywords } from './normalize.js';
 import type { DataDocument } from '../types/index.js';
 
 /**
@@ -116,7 +116,8 @@ export function getResumeDocuments(): DataDocument[] {
   ].join(' '), {
     category: 'profile',
     title: 'Profile Overview',
-    tags: ['contact', 'education', 'overview'],
+    tags: ['contact', 'education', 'overview', 'email', 'phone', 'linkedin', 'github'],
+    sourceRef: 'Resume > Profile Overview',
   }));
 
   // Education
@@ -127,7 +128,8 @@ export function getResumeDocuments(): DataDocument[] {
   ].join(' '), {
     category: 'education',
     title: 'Education',
-    tags: ['education', 'university', 'school', 'degree', 'computer science'],
+    tags: ['education', 'university', 'school', 'degree', 'computer science', 'umass', 'gpa'],
+    sourceRef: 'Resume > Education',
   }));
 
   // Each experience entry
@@ -142,7 +144,8 @@ export function getResumeDocuments(): DataDocument[] {
       docs.push(createDocument('resume', chunk, {
         category: 'experience',
         title: `${exp.title} - ${exp.company}`,
-        tags: ['experience', 'work', exp.company.toLowerCase()],
+        tags: ['experience', 'work', exp.company.toLowerCase(), ...extractKeywords(chunk)],
+        sourceRef: `Resume > Experience > ${exp.company} (${exp.date})`,
         timestamp: exp.date,
       }));
     }
@@ -150,14 +153,12 @@ export function getResumeDocuments(): DataDocument[] {
 
   // Projects
   for (const proj of RESUME_DATA.projects) {
-    docs.push(createDocument('resume', [
-      `Project: ${proj.title} (${proj.date}).`,
-      proj.description,
-      proj.url ? `URL: ${proj.url}` : '',
-    ].join(' '), {
+    const projText = [`Project: ${proj.title} (${proj.date}).`, proj.description, proj.url ? `URL: ${proj.url}` : ''].join(' ');
+    docs.push(createDocument('resume', projText, {
       category: 'project',
       title: proj.title,
-      tags: ['project'],
+      tags: ['project', ...extractKeywords(projText)],
+      sourceRef: `Resume > Projects > ${proj.title}`,
       url: proj.url,
       timestamp: proj.date,
     }));
@@ -165,25 +166,23 @@ export function getResumeDocuments(): DataDocument[] {
 
   // Awards
   for (const award of RESUME_DATA.awards) {
-    docs.push(createDocument('resume', [
-      `Award: ${award.title} (${award.date}).`,
-      award.description,
-    ].join(' '), {
+    const awardText = `Award: ${award.title} (${award.date}). ${award.description}`;
+    docs.push(createDocument('resume', awardText, {
       category: 'award',
       title: award.title,
-      tags: ['award', 'leadership'],
+      tags: ['award', 'leadership', ...extractKeywords(awardText)],
+      sourceRef: `Resume > Awards > ${award.title}`,
       timestamp: award.date,
     }));
   }
 
-  // Skills (single document)
-  docs.push(createDocument('resume', [
-    `Technical skills: ${RESUME_DATA.skills.technical.join(', ')}.`,
-    `Coursework: ${RESUME_DATA.skills.coursework.join(', ')}.`,
-  ].join(' '), {
+  // Skills
+  const skillsText = `Technical skills: ${RESUME_DATA.skills.technical.join(', ')}. Coursework: ${RESUME_DATA.skills.coursework.join(', ')}.`;
+  docs.push(createDocument('resume', skillsText, {
     category: 'skills',
     title: 'Technical Skills',
-    tags: ['skills', 'technical'],
+    tags: ['skills', 'technical', ...RESUME_DATA.skills.technical.map(s => s.toLowerCase())],
+    sourceRef: 'Resume > Skills',
   }));
 
   return docs;

@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import { MAX_PAGINATION_PAGES } from '../config/constants.js';
-import { createDocument, chunkText } from './normalize.js';
+import { createDocument, chunkText, extractKeywords } from './normalize.js';
 import type { DataDocument } from '../types/index.js';
 
 const BEEHIIV_API = 'https://api.beehiiv.com/v2';
@@ -120,14 +120,14 @@ export async function getNewsletterDocuments(): Promise<DataDocument[]> {
       title: post.title,
       url: post.web_url,
       timestamp: publishDate,
-      tags: ['newsletter', 'summary', ...(post.content_tags || [])],
+      tags: ['newsletter', 'summary', ...(post.content_tags || []), ...extractKeywords(summary)],
+      sourceRef: `Newsletter > "${post.title}" (${publishDate.slice(0, 10)})`,
     }));
 
     // Chunk the full article text
-    const chunks = chunkText(plainText, 500, 80);
+    const chunks = chunkText(plainText);
 
     for (let i = 0; i < chunks.length; i++) {
-      // Prefix each chunk with the article title for context
       const chunkContent = `From newsletter article "${post.title}": ${chunks[i]}`;
 
       docs.push(createDocument('newsletter', chunkContent, {
@@ -135,7 +135,8 @@ export async function getNewsletterDocuments(): Promise<DataDocument[]> {
         title: post.title,
         url: post.web_url,
         timestamp: publishDate,
-        tags: ['newsletter', 'content', ...(post.content_tags || [])],
+        tags: ['newsletter', 'content', ...(post.content_tags || []), ...extractKeywords(chunks[i])],
+        sourceRef: `Newsletter > "${post.title}" > chunk ${i + 1}/${chunks.length}`,
         chunkIndex: i,
         totalChunks: chunks.length,
       }));

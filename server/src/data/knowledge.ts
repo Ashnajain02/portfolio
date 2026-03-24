@@ -1,4 +1,4 @@
-import { createDocument, chunkText } from './normalize.js';
+import { createDocument, chunkText, extractKeywords } from './normalize.js';
 import type { DataDocument } from '../types/index.js';
 
 /**
@@ -76,14 +76,15 @@ export function getKnowledgeDocuments(): DataDocument[] {
   const docs: DataDocument[] = [];
 
   for (const entry of KNOWLEDGE_ENTRIES) {
-    const chunks = chunkText(entry.content, 500, 80);
+    const chunks = chunkText(entry.content);
 
     for (const chunk of chunks) {
       const chunkContent = `${entry.title}: ${chunk}`;
       docs.push(createDocument('general', chunkContent, {
         category: 'knowledge',
         title: entry.title,
-        tags: ['knowledge', ...entry.tags],
+        tags: ['knowledge', ...entry.tags, ...extractKeywords(chunk)],
+        sourceRef: `Knowledge Base > ${entry.title}`,
       }));
     }
   }
