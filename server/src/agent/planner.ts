@@ -21,9 +21,11 @@ Decision rules:
 2. If retrieved context is empty or insufficient → needsTools: true.
 3. Live/temporal words ("now", "currently", "recently", "latest", "last") → needsTools: true.
 4. ANY question about journaling habits, mood, streaks, music, weather, time patterns → searchJournal (this is live data, not in RAG).
-5. Project detail questions ("how does X work", "what features") → searchGithub (README).
-6. Cross-source patterns ("journal + code", "mood when coding") → correlateActivity.
-7. Select only the tools truly needed, at most 3.
+5. ANY question asking "what did I code/commit" on a specific date → searchGithub (commits).
+6. Questions combining coding + journaling on a date → correlateActivity.
+7. Project detail questions ("how does X work", "what features") → searchGithub (README).
+8. Follow-up questions asking for specifics about a previous answer → assume tools are needed (previous tool results are not in context).
+9. Select only the tools truly needed, at most 3.
 
 Respond with JSON only:
 { "needsTools": true/false, "tools": ["toolName"], "reasoning": "one sentence" }`;
