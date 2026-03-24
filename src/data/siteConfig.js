@@ -112,9 +112,10 @@ export const RESUME = {
       date: 'Sept 2024 - Present',
       bullets: [
         'Working in a team of engineers to implement a new labor planning and budgeting software across all HomeGoods, Marshalls, and TJ Maxx stores worldwide',
-        'Performed in-depth data analysis in Python and SQL to understand metric shifts between new vs legacy software',
-        'Built key UI components in React for a new customer service page, reducing click-heavy interactions',
-        'Employed React Router to establish protected routes for login pages and admin dashboards',
+        'Designed and implemented multi-step data integration pipelines across internal and vendor systems, handling inconsistent and incomplete data formats',
+        'Diagnosed and resolved data discrepancies between legacy and new systems through large-scale Python/SQL analysis, improving data reliability',
+        'Collaborated on system architecture and integration design, defining data contracts, transformation logic, and workflow orchestration',
+        'Built frontend components in React and implemented secure routing and access control mechanisms for internal tools',
       ],
     },
     {
@@ -139,17 +140,23 @@ export const RESUME = {
   ],
   projects: [
     {
-      title: "'Undercover Agents' Newsletter",
-      date: 'May 2025 - Present',
+      title: 'About Ashna (Portfolio + AI Agent)',
+      url: 'https://about-ashna-jain.vercel.app/',
+      date: 'March 2026 - Present',
       bullets: [
-        'Publish a newsletter highlighting innovative AI agents, achieving ~3% weekly growth and ~16% per article release',
+        'Built a production-grade agentic AI system with multi-source RAG pipeline using pgvector',
+        'Designed query planning layer using GPT-4o-mini for dynamic tool selection',
+        'Implemented tool orchestration with 7+ tools (GitHub, Beehiiv, Echo API, semantic search)',
+        'Optimized performance through context window management, caching, and structured outputs',
       ],
     },
     {
-      title: 'Eternal Entries',
+      title: 'Echo',
+      url: 'https://echo-entries.com/',
       date: 'May 2025 - Present',
       bullets: [
-        'Built a digital diary website with web and mobile frontend and RESTful API on Node.js backend',
+        'Built a context-aware journaling platform enriching entries with weather and song data',
+        'Developed web and mobile frontend and RESTful API endpoints on a Node.js backend',
       ],
     },
   ],
@@ -159,11 +166,6 @@ export const RESUME = {
       subtitle: "$20,000 Prize ('Shift Up')",
       date: 'Oct 2025',
     },
-    {
-      title: 'Won 1st Place in JIA Pitch Competition',
-      subtitle: "('Parivartan')",
-      date: 'April - Dec 2024',
-    },
   ],
-  skills: 'Python, Java, JavaScript, SQL, TypeScript, Node.js, Express, React, PostgreSQL, MongoDB, GCP, Azure, Docker, PGvector, S3, Claude Code',
+  skills: 'Python, Java, JavaScript, SQL, TypeScript, Node.js, Express, React, PostgreSQL, MongoDB, Supabase, GCP, Azure, pgvector, Neon, LLM Application Development, RAG, Tool Calling & Agent Orchestration, Embeddings, Semantic Search, Context & Memory Systems',
 }

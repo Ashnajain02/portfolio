@@ -12,6 +12,7 @@ const RESUME_DATA = {
     phone: '508-471-0784',
     email: 'ashnajain02@gmail.com',
     github: 'github.com/ashnajain02',
+    
   },
   education: {
     school: 'University of Massachusetts Amherst',
@@ -26,11 +27,10 @@ const RESUME_DATA = {
       date: 'Sept 2024 - Present',
       bullets: [
         'Working in a team of engineers to implement a new labor planning and budgeting software across all HomeGoods, Marshalls, and TJ Maxx stores worldwide; heavily involved in design decisions, including for the data inputs, update frequency, report generation, KPIs, and structure of delivery workflows pipelines.',
-        'Performed in-depth data analysis in Python and SQL to understand metric shifts between new vs legacy software; identified data discrepancies, documented findings, and implemented the fixes.',
-        'Collaborated on technical design doc and mapping integration docs to support migration between systems.',
-        'Built modular, multi-step integrations, enabling reuse across future projects.',
-        'Built key UI components in React for a new customer service page, helping to reduce click-heavy interactions.',
-        'Employed React Router to establish protected routes for login pages and admin dashboards, resulting in enhanced user access control and system security.',
+        'Designed and implemented multi-step data integration pipelines across internal and vendor systems, handling inconsistent and incomplete data formats.',
+        'Diagnosed and resolved data discrepancies between legacy and new systems through large-scale Python/SQL analysis, improving data reliability.',
+        'Collaborated on system architecture and integration design, defining data contracts, transformation logic, and workflow orchestration.',
+        'Built frontend components in React and implemented secure routing and access control mechanisms for internal tools.',
       ],
     },
     {
@@ -64,16 +64,16 @@ const RESUME_DATA = {
   ],
   projects: [
     {
-      title: "'Undercover Agents' Newsletter",
-      url: 'https://undercover-agents.beehiiv.com/',
-      date: 'May 2025 - Present',
-      description: 'Publish a newsletter called "Undercover AI: Agents You Didn\'t Know You Needed" to help highlight innovative AI. Analyzed subscriber funnel from acquisition to engagement, identifying drop-off points and iterating on content and design to improve retention. Achieved consistent audience growth (~3% weekly; ~16% per article release).',
+      title: 'About Ashna (Portfolio + AI Agent)',
+      url: 'https://about-ashna-jain.vercel.app/',
+      date: 'March 2026 - Present',
+      description: 'Built a production-grade agentic AI system integrating a multi-source RAG pipeline using vector embeddings (pgvector) over structured and unstructured personal data. Designed a query planning and routing layer using GPT-4o-mini to dynamically select between semantic retrieval, tool execution, and multi-step reasoning. Implemented a tool orchestration framework with 7+ tools (GitHub, Beehiiv, Echo API, semantic search), enabling cross-source reasoning and real-time data integration. Optimized system performance through context window management, caching, and structured outputs, improving response latency and reducing token usage.',
     },
     {
-      title: 'Eternal Entries',
-      url: 'https://eternal-entries.vercel.app/',
+      title: 'Echo',
+      url: 'https://echo-entries.com/',
       date: 'May 2025 - Present',
-      description: 'Built a digital diary website inspired by my own habit of journaling and wanting an easy way to revisit past entries & link music to entries. Developed web and mobile frontend and created supporting RESTful API endpoints on a Node.js backend.',
+      description: 'Built Echo, a context-aware journaling platform that enriches entries with stunning UI for weather and song data, creating a more immersive and memory-linked journaling experience. Developed web and mobile frontend and created supporting RESTful API endpoints on a Node.js backend.',
     },
   ],
   awards: [
@@ -82,11 +82,6 @@ const RESUME_DATA = {
       date: 'Oct 2025',
       description: 'Part of a team of 3 that pitched a solution to help displaced workers combat job loss in the world of AI. Awarded $20,000 prize. Used intelligent prompting to develop a functional full-stack prototype with minimal errors.',
     },
-    {
-      title: "Won 1st Place in JIA Pitch Competition ('Parivartan')",
-      date: 'April 2024 - Dec 2024',
-      description: 'Advanced through 4 competition rounds, delivering the winning pitch to 900 convention attendees for a clothing pop-up that featured swap, stitch, and repurpose stations to promote sustainable fashion. Conducted research with 200+ participants, and performed data analysis via Python to drive product decisions.',
-    },
   ],
   skills: {
     coursework: [
@@ -94,26 +89,15 @@ const RESUME_DATA = {
       'Databases', 'Artificial Intelligence', 'Machine Learning',
       'Secure Distributed Systems',
     ],
-    languages: [
+    technical: [
       'Python', 'Java', 'JavaScript', 'SQL', 'TypeScript',
-    ],
-    frameworks: [
-      'Node.js', 'Express', 'React', 'Django', 'Svelte',
-    ],
-    databases: [
-      'PostgreSQL', 'MongoDB', 'Supabase', 'Neon',
-    ],
-    tools: [
-      'GCP', 'Azure', 'Git', 'Docker', 'Claude Code', 'pgvector',
+      'Node.js', 'Express', 'React', 'PostgreSQL', 'MongoDB',
+      'Supabase', 'GCP', 'Azure', 'pgvector', 'Neon',
+      'LLM Application Development', 'RAG',
+      'Tool Calling & Agent Orchestration', 'Embeddings',
+      'Semantic Search', 'Context & Memory Systems',
     ],
   },
-  personalFacts: [
-    'Has been vegan for 15 years.',
-    'There is a picture of her on the moon (via a lunar archive project).',
-    'Lives in San Francisco.',
-    'Believes the best products come from empathy + engineering.',
-    'Deep into using AI tools like Claude Code to build faster and smarter.',
-  ],
 };
 
 /**
@@ -194,26 +178,12 @@ export function getResumeDocuments(): DataDocument[] {
 
   // Skills (single document)
   docs.push(createDocument('resume', [
-    `Technical skills:`,
-    `Languages: ${RESUME_DATA.skills.languages.join(', ')}.`,
-    `Frameworks: ${RESUME_DATA.skills.frameworks.join(', ')}.`,
-    `Databases: ${RESUME_DATA.skills.databases.join(', ')}.`,
-    `Tools: ${RESUME_DATA.skills.tools.join(', ')}.`,
+    `Technical skills: ${RESUME_DATA.skills.technical.join(', ')}.`,
     `Coursework: ${RESUME_DATA.skills.coursework.join(', ')}.`,
   ].join(' '), {
     category: 'skills',
     title: 'Technical Skills',
     tags: ['skills', 'technical'],
-  }));
-
-  // Personal facts
-  docs.push(createDocument('resume', [
-    `Personal facts about ${RESUME_DATA.name}:`,
-    ...RESUME_DATA.personalFacts,
-  ].join(' '), {
-    category: 'personal',
-    title: 'Personal Facts',
-    tags: ['personal', 'fun facts'],
   }));
 
   return docs;

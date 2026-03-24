@@ -95,7 +95,10 @@ export default function ResumeViewer({ isOpen, onClose, style, zIndex, onFocus }
                 {RESUME.projects.map((proj, i) => (
                   <div className="resume-pdf-entry" key={i}>
                     <div className="resume-pdf-row">
-                      <div><strong>{proj.title}</strong></div>
+                      <div>
+                        <strong>{proj.title}</strong>
+                        {proj.url && <> - <a href={proj.url} target="_blank" rel="noopener noreferrer">{proj.url}</a></>}
+                      </div>
                       <div className="resume-pdf-date">{proj.date}</div>
                     </div>
                     <ul>
