@@ -22,7 +22,9 @@ Rules:
 - For "when did I last journal" → searchJournal + getJournalEntry
 - For "what repos do I have" → searchGithub
 - For cross-source (coding + journaling patterns) → correlateActivity
-- For questions about personal background, projects, experience, newsletter → usually RAG is enough.
+- For questions about personal background, experience, newsletter content → usually RAG is enough.
+- For questions about PROJECTS (Echo, Twix, etc.) that ask "what are you working on" or "how does it work" → include searchGithub (README has current details).
+- For questions with words like "now", "currently", "recently", "latest" → assume live data needed.
 
 Respond with JSON only:
 {
