@@ -31,7 +31,6 @@ export default function BrowserWidget({ isOpen, onClose, url, title, style, zInd
               <div
                 className="window-dot window-dot--close"
                 onClick={onClose}
-                data-clickable
               />
             </div>
 
@@ -41,7 +40,6 @@ export default function BrowserWidget({ isOpen, onClose, url, title, style, zInd
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                data-clickable
                 onPointerDown={(e) => e.stopPropagation()}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -57,7 +55,6 @@ export default function BrowserWidget({ isOpen, onClose, url, title, style, zInd
               target="_blank"
               rel="noopener noreferrer"
               className="browser-widget-open-btn"
-              data-clickable
               onClick={(e) => e.stopPropagation()}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

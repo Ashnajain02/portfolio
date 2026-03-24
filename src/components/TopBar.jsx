@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PROFILE } from '../data/siteConfig'
 
+const formatTime = (d) =>
+  d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+
+const formatDate = (d) =>
+  d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
 export default function TopBar() {
   const [time, setTime] = useState(new Date())
 
@@ -9,12 +15,6 @@ export default function TopBar() {
     const interval = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(interval)
   }, [])
-
-  const formatTime = (d) =>
-    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-
-  const formatDate = (d) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
   return (
     <motion.div

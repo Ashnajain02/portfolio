@@ -33,7 +33,6 @@ export default function ContextMenu({ x, y, onClose, onAction }) {
           <motion.div
             key={item.id}
             className="context-menu-item"
-            data-clickable
             onClick={() => {
               if (item.id === 'refresh') window.location.reload()
               else if (item.id === 'github') window.open(PROFILE.github, '_blank')

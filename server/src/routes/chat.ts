@@ -69,9 +69,5 @@ chatRouter.post('/', async (req: Request, res: Response) => {
 
 
 function sendEvent(res: Response, event: { type: string; data: unknown }): void {
-  const payload = `data: ${JSON.stringify(event)}\n\n`;
-  const written = res.write(payload);
-  if (!written) {
-    console.warn(`[sse] Back-pressure on event type: ${event.type}`);
-  }
+  res.write(`data: ${JSON.stringify(event)}\n\n`);
 }

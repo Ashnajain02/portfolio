@@ -150,7 +150,7 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
     }
   }
 
-  const renderLine = (line, i) => {
+  const renderLine = (line, i, activeResponseLine) => {
     switch (line.type) {
       case 'prompt':
         return (
@@ -160,14 +160,12 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
           </div>
         )
       case 'response': {
-        // Hide empty response lines during streaming (thinking indicator handles that)
         if (isStreaming && line.id && !line.text) return null
-        // Only show cursor on the actively streaming response (the last one with an id)
-        const isActiveResponse = isStreaming && line.id && line === lines.findLast(l => l.id)
+        const isActive = line === activeResponseLine
         return (
           <div key={line.id || i} className="terminal-line">
             <span className="terminal-response">{line.text}</span>
-            {isActiveResponse && <span className="terminal-cursor" />}
+            {isActive && <span className="terminal-cursor" />}
           </div>
         )
       }
@@ -210,13 +208,16 @@ export default function Terminal({ isOpen, style, zIndex, onFocus, onClose }) {
             style={{ cursor: 'grab', touchAction: 'none' }}
           >
             <div className="window-dots">
-              <div className="window-dot window-dot--close" onClick={onClose} data-clickable />
+              <div className="window-dot window-dot--close" onClick={onClose} />
             </div>
             <span className="terminal-header-title">ask-{PROFILE.name.split(' ')[0].toLowerCase()}</span>
             <div style={{ width: 24 }} />
           </div>
           <div className="terminal-body" ref={bodyRef} onClick={() => inputRef.current?.focus()}>
-            {lines.map(renderLine)}
+            {(() => {
+              const activeResponseLine = isStreaming ? lines.findLast(l => l.id) : null
+              return lines.map((line, i) => renderLine(line, i, activeResponseLine))
+            })()}
 
             {/* Active input line */}
             {!isStreaming && (

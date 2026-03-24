@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PROFILE } from '../data/siteConfig'
 
@@ -27,16 +28,24 @@ const letterVariants = {
 
 export default function Splash({ onComplete }) {
   const name = PROFILE.name
-  const subtitle = 'Welcome to my desktop'
+  const hasFired = useRef(false)
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  const handleComplete = () => {
+    if (hasFired.current) return
+    hasFired.current = true
+    timerRef.current = setTimeout(onComplete, 800)
+  }
 
   return (
     <motion.div
       className="splash-screen"
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      onAnimationComplete={() => {
-        // Wait for all letters + a pause, then exit
-      }}
     >
       <div style={{ textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', perspective: 600 }}>
@@ -66,14 +75,11 @@ export default function Splash({ onComplete }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2, duration: 0.6 }}
           exit={{ opacity: 0 }}
-          onAnimationComplete={() => {
-            setTimeout(onComplete, 800)
-          }}
+          onAnimationComplete={handleComplete}
         >
-          {subtitle}
+          Welcome to my desktop
         </motion.p>
 
-        {/* Loading bar */}
         <motion.div
           style={{
             marginTop: 24,

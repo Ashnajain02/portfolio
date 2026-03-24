@@ -7,7 +7,6 @@ export const FOLDERS = [
     color: p.color,
     type: 'browser',
     position: p.position,
-    content: {},
   })),
   {
     id: PHOTOS_FOLDER.id,

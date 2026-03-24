@@ -70,10 +70,11 @@ const correlateActivity: ToolDefinition = {
     const analysis = args.analysis as string;
 
     try {
+      const needsStats = analysis === 'day_of_week' || analysis === 'summary';
       const [commitDates, journalEntries, stats] = await Promise.all([
         getCommitDates(),
         getRecentJournalEntries(),
-        fetchJournalStats(),
+        needsStats ? fetchJournalStats() : Promise.resolve(null),
       ]);
 
       // Build journal date -> entries map
@@ -106,7 +107,7 @@ const correlateActivity: ToolDefinition = {
         commitsByDay[day] = (commitsByDay[day] || 0) + count;
       }
 
-      const journalDayDist = stats.timePatterns?.dayDistribution || [];
+      const journalDayDist = stats?.timePatterns?.dayDistribution || [];
       const dayOfWeek = dayNames.map(day => ({
         day,
         commits: commitsByDay[day] || 0,

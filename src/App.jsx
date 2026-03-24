@@ -76,8 +76,8 @@ export default function App() {
   }, [])
 
   const handleClick = useCallback(() => {
-    if (contextMenu) setContextMenu(null)
-  }, [contextMenu])
+    setContextMenu((prev) => prev ? null : prev)
+  }, [])
 
   return (
     <>

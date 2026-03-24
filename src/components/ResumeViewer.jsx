@@ -29,7 +29,6 @@ export default function ResumeViewer({ isOpen, onClose, style, zIndex, onFocus }
               <div
                 className="window-dot window-dot--close"
                 onClick={onClose}
-                data-clickable
               />
             </div>
             <span className="window-title">Resume.pdf</span>
@@ -37,7 +36,6 @@ export default function ResumeViewer({ isOpen, onClose, style, zIndex, onFocus }
               href={PROFILE.resumeDownloadFile}
               download={`${PROFILE.name.replace(/\s+/g, '_')}_Resume.pdf`}
               className="resume-download-btn"
-              data-clickable
               onClick={(e) => e.stopPropagation()}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

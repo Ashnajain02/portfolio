@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import type OpenAI from 'openai';
 import { openai } from '../config/openai.js';
 import { AGENT_MODEL, MAX_TOOL_ITERATIONS } from '../config/constants.js';
 import { toolRegistry } from '../tools/registry.js';
@@ -67,27 +67,24 @@ export async function runAgent(
   // Step 1: Pre-fetch RAG — search ALL embedded sources
   const ragResults = await retrieve(userMessage, {
     limit: 5,
-    threshold: 0.2,
+    threshold: MIN_RAG_SCORE,
   });
 
-  // Filter to only quality results
-  const qualityResults = ragResults.filter(r => r.score >= MIN_RAG_SCORE);
-
   // Build RAG context string for the system prompt
-  const ragContext = qualityResults.length > 0
-    ? qualityResults.map((r, i) =>
+  const ragContext = ragResults.length > 0
+    ? ragResults.map((r, i) =>
         `[${i + 1}] (${r.document.source}${r.document.metadata.title ? ': ' + r.document.metadata.title : ''}, score: ${r.score.toFixed(2)})\n${r.document.content}`
       ).join('\n\n')
     : '';
 
   // Track RAG sources
-  for (const r of qualityResults) {
+  for (const r of ragResults) {
     sources.add(r.document.source);
   }
 
   // Build RAG summary for planner (shorter than full context)
-  const ragSummary = qualityResults.length > 0
-    ? qualityResults.map(r => `[${r.document.source}] ${r.document.content.slice(0, 150)}`).join('\n')
+  const ragSummary = ragResults.length > 0
+    ? ragResults.map(r => `[${r.document.source}] ${r.document.content.slice(0, 150)}`).join('\n')
     : '';
 
   // Step 2: Plan — planner decides if tools are needed
@@ -132,7 +129,6 @@ export async function runAgent(
     try {
       for await (const chunk of response) {
         const delta = chunk.choices[0]?.delta;
-        const finishReason = chunk.choices[0]?.finish_reason;
 
         if (delta?.content) {
           streamedContent += delta.content;
@@ -152,9 +148,6 @@ export async function runAgent(
           }
         }
 
-        if (finishReason) {
-          finalContent = streamedContent;
-        }
       }
     } catch (streamErr) {
       console.error('[agent] Stream error:', streamErr);

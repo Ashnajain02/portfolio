@@ -2,7 +2,7 @@ import { embedText } from './embeddings.js';
 import { searchSimilar } from './vectorStore.js';
 import type { DataSource, SearchResult } from '../types/index.js';
 
-export interface RetrievalOptions {
+interface RetrievalOptions {
   limit?: number;
   threshold?: number;
   sources?: DataSource[];

@@ -1,5 +1,6 @@
 import { openai } from '../config/openai.js';
 import { PLANNER_MODEL } from '../config/constants.js';
+import { toolRegistry } from '../tools/registry.js';
 import type { AgentPlan } from '../types/index.js';
 
 /**
@@ -54,8 +55,15 @@ export async function planQuery(
 
     const parsed = JSON.parse(content);
     const needsTools = parsed.needsTools === true;
+
+    // Validate tool names against registry — drop any hallucinated names
+    const validTools = toolRegistry.getOpenAITools().map(t => t.function.name);
+    const requestedTools = needsTools && Array.isArray(parsed.tools)
+      ? parsed.tools.filter((t: string) => validTools.includes(t))
+      : [];
+
     return {
-      tools: needsTools && Array.isArray(parsed.tools) ? parsed.tools : [],
+      tools: requestedTools,
       reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : '',
     };
   } catch {

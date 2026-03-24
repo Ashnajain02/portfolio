@@ -189,7 +189,3 @@ export function getResumeDocuments(): DataDocument[] {
   return docs;
 }
 
-/** Returns the raw resume data for direct access */
-export function getResumeRaw() {
-  return RESUME_DATA;
-}

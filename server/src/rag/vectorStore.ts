@@ -132,7 +132,7 @@ export async function searchSimilar(
       content: row.content,
       metadata: row.metadata,
     },
-    score: parseFloat(row.score),
+    score: parseFloat(row.score) || 0,
   }));
 }
 

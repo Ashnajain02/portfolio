@@ -80,7 +80,7 @@ async function cachedFetch<T>(url: string): Promise<T> {
   return data;
 }
 
-export async function fetchProfile(): Promise<GitHubProfile> {
+async function fetchProfile(): Promise<GitHubProfile> {
   return cachedFetch<GitHubProfile>(`${GITHUB_API}/users/${GITHUB_USERNAME}`);
 }
 

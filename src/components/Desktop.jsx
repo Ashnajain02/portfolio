@@ -73,7 +73,6 @@ function DesktopIcon({ position, index, clicked, onClickAction, className, child
       transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 2.3 + index * 0.1 }}
       whileHover={ICON_HOVER}
       whileTap={ICON_TAP}
-      data-clickable
     >
       {children}
       <span className="folder-icon-label">{label}</span>
@@ -88,8 +87,7 @@ BROWSER_PROJECTS.forEach((p, i) => { INITIAL_Z[p.id] = 12 + i })
 
 export default function Desktop({ onFolderOpen }) {
   const [resumeOpen, setResumeOpen] = useState(false)
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  const [terminalOpen, setTerminalOpen] = useState(!isMobile)
+  const [terminalOpen, setTerminalOpen] = useState(() => window.innerWidth >= 768)
   const [clickedItems, setClickedItems] = useState({})
   const [browserOpen, setBrowserOpen] = useState(
     () => Object.fromEntries(BROWSER_PROJECTS.map((p) => [p.id, false]))

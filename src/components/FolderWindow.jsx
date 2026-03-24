@@ -77,7 +77,7 @@ export default function FolderWindow({ folder, origin, onClose }) {
       >
         <div className="window-titlebar">
           <div className="window-dots">
-            <div className="window-dot window-dot--close" onClick={onClose} data-clickable />
+            <div className="window-dot window-dot--close" onClick={onClose} />
           </div>
           <span className="window-title">{folder.name}</span>
           <div style={{ width: 54 }} />
