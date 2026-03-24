@@ -867,6 +867,8 @@ html, body, #root {
   color: #A8D08D;
   overflow-y: auto;
   cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .terminal-line {

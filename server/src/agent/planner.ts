@@ -16,6 +16,7 @@ Available tools:
 
 Rules:
 - Select 1-3 tools that are most relevant. Don't select tools that won't help.
+- For questions about specific projects (Echo, Twix, etc.), ALWAYS include both searchKnowledge AND searchGithub — knowledge has the personal story, GitHub has the technical details and README.
 - For cross-source questions (coding + journaling), use correlateActivity.
 - For "when did I last journal" + details, use searchJournal then getJournalEntry.
 - For personal/philosophical questions, use searchKnowledge.
