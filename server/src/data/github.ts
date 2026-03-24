@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 import { GITHUB_USERNAME, CACHE_TTL_MEDIUM, MAX_CACHE_ENTRIES } from '../config/constants.js';
 
 const GITHUB_API = 'https://api.github.com';
@@ -40,10 +41,14 @@ interface GitHubProfile {
   html_url: string;
 }
 
-const headers: Record<string, string> = {
-  Accept: 'application/vnd.github+json',
-  'User-Agent': 'aj-portfolio-agent',
-};
+function getHeaders(): Record<string, string> {
+  const h: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'aj-portfolio-agent',
+  };
+  if (env.GITHUB_TOKEN) h.Authorization = `Bearer ${env.GITHUB_TOKEN}`;
+  return h;
+}
 
 // Bounded cache with TTL and max entry limit
 const cache = new Map<string, { data: unknown; fetchedAt: number }>();
@@ -69,7 +74,7 @@ async function cachedFetch<T>(url: string): Promise<T> {
     return cached.data as T;
   }
 
-  const response = await fetch(url, { headers });
+  const response = await fetch(url, { headers: getHeaders() });
   if (!response.ok) {
     throw new Error(`GitHub API ${response.status}: ${response.statusText}`);
   }

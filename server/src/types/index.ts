@@ -45,12 +45,6 @@ export interface ToolDefinition {
   execute: (args: Record<string, unknown>) => Promise<ToolResult>;
 }
 
-export interface ToolCall {
-  id: string;
-  name: string;
-  arguments: Record<string, unknown>;
-}
-
 export interface ToolResult {
   success: boolean;
   data: unknown;
@@ -72,7 +66,7 @@ export interface AgentPlan {
 export type StreamEvent =
   | { type: 'session'; data: string }
   | { type: 'plan'; data: AgentPlan }
-  | { type: 'tool_call'; data: ToolCall }
+  | { type: 'tool_call'; data: { id: string; name: string; arguments: Record<string, unknown> } }
   | { type: 'tool_result'; data: { name: string; result: ToolResult } }
   | { type: 'token'; data: string }
   | { type: 'sources'; data: string[] }

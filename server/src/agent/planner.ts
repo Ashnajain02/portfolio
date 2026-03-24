@@ -8,31 +8,24 @@ import type { AgentPlan } from '../types/index.js';
  * 1. Whether RAG alone is sufficient to answer
  * 2. Which live tools (if any) are needed
  */
-const PLANNER_PROMPT = `You are a query router. Given a user question and retrieved context, decide what additional data is needed.
+const PLANNER_PROMPT = `You are a query router. Given a user question and any retrieved context, decide if live tools are needed.
 
-Available LIVE tools (only select these if the retrieved context is NOT sufficient):
-- searchJournal: Fetch aggregated journaling stats (mood trends, streaks, activity counts, last entry date)
-- getJournalEntry: Fetch journal entry details for a specific date (mood, weather, song, location)
-- searchGithub: Fetch GitHub profile, repos, commits, or README content
-- correlateActivity: Cross-reference GitHub commits with journal entries (overlapping days, mood on coding days)
+Tools:
+- searchJournal: Aggregated journal stats (streaks, mood trends, entry counts, last entry date)
+- getJournalEntry: Specific date's journal metadata (mood, weather, song, location)
+- searchGithub: GitHub profile, repo list, commits, or README content
+- correlateActivity: Cross-reference GitHub commits with journal entries
 
-Rules:
-- If the retrieved context already answers the question fully, set needsTools to false.
-- If the question asks about LIVE/current data (journal stats, GitHub repos, recent activity), set needsTools to true.
-- Select at most 2 tools. Only select what's truly needed.
-- For "when did I last journal" → searchJournal + getJournalEntry
-- For "what repos do I have" → searchGithub
-- For cross-source (coding + journaling patterns) → correlateActivity
-- For questions about personal background, experience, newsletter content → usually RAG is enough.
-- For questions about PROJECTS (Echo, Twix, etc.) that ask "what are you working on" or "how does it work" → include searchGithub (README has current details).
-- For questions with words like "now", "currently", "recently", "latest" → assume live data needed.
+Decision rules:
+1. If retrieved context fully answers the question → needsTools: false.
+2. If retrieved context is empty or insufficient → needsTools: true.
+3. Live/temporal words ("now", "currently", "recently", "latest", "last") → needsTools: true.
+4. Project detail questions ("how does X work", "what features") → searchGithub (README).
+5. Cross-source patterns ("journal + code", "mood when coding") → correlateActivity.
+6. Select only the tools truly needed, at most 3.
 
 Respond with JSON only:
-{
-  "needsTools": true/false,
-  "tools": ["tool1"],
-  "reasoning": "brief explanation"
-}`;
+{ "needsTools": true/false, "tools": ["toolName"], "reasoning": "one sentence" }`;
 
 export async function planQuery(
   userMessage: string,

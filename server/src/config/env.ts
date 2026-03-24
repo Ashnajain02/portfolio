@@ -8,6 +8,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JOURNAL_API_URL: z.string().optional().default(''),
   JOURNAL_API_KEY: z.string().optional().default(''),
+  GITHUB_TOKEN: z.string().optional().default(''),
   BEEHIIV_API_KEY: z.string().optional().default(''),
   BEEHIIV_PUBLICATION_ID: z.string().optional().default(''),
   PORT: z.coerce.number().default(3001),

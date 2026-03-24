@@ -144,26 +144,6 @@ html, body, #root {
   font-variant-numeric: tabular-nums;
 }
 
-.topbar-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.topbar-btn:hover {
-  background: var(--glass-border);
-  color: var(--text-primary);
-}
-
 
 /* ===== Dock ===== */
 .dock-wrapper {
