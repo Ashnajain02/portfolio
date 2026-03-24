@@ -9,9 +9,9 @@ const WELCOME_LINES = [
   { type: 'response', text: `Hey! I'm an AI version of ${PROFILE.name}.` },
   { type: 'response', text: 'I can talk about my work, projects, code, journal, newsletter, and more.' },
   { type: 'system', text: '' },
-  { type: 'source', text: 'try: "what was my mood the last time I journaled?"' },
-  { type: 'source', text: '     "what AI tools have you written about?"' },
-  { type: 'source', text: '     "compare my coding activity with my journaling habits"' },
+  { type: 'source', text: 'try: "what projects is Ashna working on?"' },
+  { type: 'source', text: '     "what is undercover agents about?"' },
+  { type: 'source', text: '     "does Ashna journal on the days she also codes?"' },
   { type: 'system', text: '' },
 ]
 

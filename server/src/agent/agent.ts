@@ -18,21 +18,17 @@ Today's date: ${localDate} (${localTime}). Viewer's timezone: ${tz}.
 NEVER reference dates in the future. When displaying times, convert from UTC to the viewer's timezone (${tz}).
 All timestamps from tools are in UTC — you MUST convert them before displaying.
 
-Personality:
-- Friendly, warm, and genuine
-- Confident but not arrogant
-- Concise — you don't over-explain
-- You mention specific details from your actual experience
-- Light humor when appropriate
+Style:
+- This is a TERMINAL. Keep responses SHORT — 2-4 sentences max.
+- No long paragraphs. No bullet lists unless asked. No filler.
+- Be direct and specific. Lead with the answer, not the context.
+- Friendly but brief. Think text message, not essay.
 
 Rules:
-- ALWAYS use the provided tools to look up information before answering. Do NOT make up details.
-- If a tool returns no results or the data doesn't contain the answer, say "I don't have that data right now" or "my stats API doesn't track that yet." NEVER fabricate dates, numbers, or facts.
-- NEVER guess or infer information that isn't explicitly in the tool results. If the data says nothing about a topic, say so.
-- When discussing projects or experience, cite specifics (company names, dates, metrics) ONLY from tool results.
-- For personal questions, be authentic and personable.
-- If someone asks something you genuinely don't know about yourself, say so naturally.
-- Keep responses conversational — this is iMessage, not a formal email.`;
+- ALWAYS use tools to look up info before answering. Do NOT make up details.
+- If the data doesn't contain the answer, say so in one sentence. NEVER fabricate dates, numbers, or facts.
+- Cite specifics (names, dates, metrics) ONLY from tool results.
+- NEVER reference dates in the future.`;
 }
 
 export type StreamCallback = (event: StreamEvent) => void;
@@ -58,13 +54,11 @@ export async function runAgent(
     timestamp: Date.now(),
   });
 
-  // Step 1: Plan
-  console.log('[agent] Planning query...');
+  // Step 1: Plan — select relevant tools
   const plan = await planQuery(userMessage);
-  console.log('[agent] Plan:', plan.complexity, plan.tools);
   onStream({ type: 'plan', data: plan });
 
-  // Step 2-3: Tool calling loop with the LLM
+  // Step 2: Build context and filter tools based on plan
   const contextMessages = getContextMessages(sessionId);
 
   const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [
@@ -75,19 +69,19 @@ export async function runAgent(
     })),
   ];
 
-  const tools = toolRegistry.getOpenAITools();
+  // Only send the tools the planner selected — reduces tokens and improves accuracy
+  const allTools = toolRegistry.getOpenAITools();
+  const tools = allTools.filter(t => plan.tools.includes(t.function.name));
   let iterations = 0;
   let finalContent = '';
 
   while (iterations < MAX_TOOL_ITERATIONS) {
     iterations++;
 
-    console.log(`[agent] Iteration ${iterations}, calling ${AGENT_MODEL} with ${tools.length} tools...`);
     const response = await openai.chat.completions.create({
       model: AGENT_MODEL,
       messages: openaiMessages,
       tools: tools.length > 0 ? tools : undefined,
-      tool_choice: iterations === 1 && tools.length > 0 ? 'auto' : undefined,
       stream: true,
     });
 
@@ -126,7 +120,6 @@ export async function runAgent(
       console.error('[agent] Stream error:', streamErr);
       throw streamErr;
     }
-    console.log(`[agent] Iteration ${iterations} complete, hasToolCalls: ${hasToolCalls}`);
 
     if (!hasToolCalls) {
       finalContent = streamedContent;

@@ -14,17 +14,6 @@ export const PROFILE = {
   resumeDownloadFile: '/resume.pdf',
 }
 
-export const TERMINAL_BIO = [
-  { prompt: true, text: 'whoami' },
-  { prompt: false, text: `${PROFILE.name} — ${PROFILE.title}` },
-  { prompt: true, text: 'cat about.txt' },
-  { prompt: false, text: 'I design and build full-stack apps' },
-   { prompt: true, text: 'cat todo.txt' },
-  { prompt: false, text: 'Click on the folder to explore my work!' },
-  { prompt: true, text: 'echo "Welcome to my desktop!"' },
-  { prompt: false, text: 'Welcome to my desktop!' },
-]
-
 export const DOCK_LINKS = {
   github: PROFILE.github,
   linkedin: PROFILE.linkedin,

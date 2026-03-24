@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useApp } from '../App'
 import { PROFILE } from '../data/siteConfig'
 
 export default function TopBar() {
-  const { musicPlaying, setMusicPlaying } = useApp()
   const [time, setTime] = useState(new Date())
 
   useEffect(() => {
@@ -27,17 +25,6 @@ export default function TopBar() {
     >
       <div className="topbar-left">
         <span className="topbar-name">{PROFILE.name}</span>
-        <button className="topbar-btn" onClick={() => setMusicPlaying(!musicPlaying)}>
-          <div className="music-indicator">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className={`music-bar ${!musicPlaying ? 'music-bar--paused' : ''}`}
-              />
-            ))}
-          </div>
-          <span style={{ fontSize: 11 }}>{musicPlaying ? 'On' : 'Off'}</span>
-        </button>
       </div>
 
       <div className="topbar-right">

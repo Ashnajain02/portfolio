@@ -6,7 +6,6 @@ dotenv.config();
 const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  E2B_API_KEY: z.string().optional().default(''),
   JOURNAL_API_URL: z.string().optional().default(''),
   JOURNAL_API_KEY: z.string().optional().default(''),
   BEEHIIV_API_KEY: z.string().optional().default(''),
@@ -27,4 +26,3 @@ function loadEnv() {
 }
 
 export const env = loadEnv();
-export type Env = z.infer<typeof envSchema>;

@@ -60,9 +60,6 @@ class ToolRegistry {
     }));
   }
 
-  listTools(): string[] {
-    return Array.from(this.tools.keys());
-  }
 }
 
 export const toolRegistry = new ToolRegistry();

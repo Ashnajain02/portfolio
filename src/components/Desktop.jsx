@@ -5,7 +5,7 @@ import StickyNote from './StickyNote'
 import ResumeViewer from './ResumeViewer'
 import BrowserWidget from './BrowserWidget'
 import { FOLDERS, STICKY_NOTES } from '../data/folders'
-import { BROWSER_PROJECTS, PROFILE } from '../data/siteConfig'
+import { BROWSER_PROJECTS } from '../data/siteConfig'
 
 // Pre-compute layout positions for browser widgets
 const BROWSER_POSITIONS = [

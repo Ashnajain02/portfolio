@@ -6,7 +6,6 @@
   --accent-warm: #D4A574;
   --accent-sage: #8B9D77;
   --accent-terra: #C17C5E;
-  --accent-gold: #B8960B;
   --accent-rose: #C4867A;
   --accent-plum: #9B7E8E;
   --text-primary: #3D2E1F;
@@ -165,26 +164,6 @@ html, body, #root {
   color: var(--text-primary);
 }
 
-/* ===== Music Indicator ===== */
-.music-indicator { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
-
-.music-bar {
-  width: 3px;
-  background: var(--accent-sage);
-  border-radius: 1px;
-  animation: musicBounce 0.8s ease-in-out infinite alternate;
-}
-
-.music-bar:nth-child(1) { height: 4px; animation-delay: 0s; }
-.music-bar:nth-child(2) { height: 8px; animation-delay: 0.2s; }
-.music-bar:nth-child(3) { height: 6px; animation-delay: 0.4s; }
-.music-bar:nth-child(4) { height: 10px; animation-delay: 0.1s; }
-.music-bar--paused { animation: none !important; height: 4px !important; }
-
-@keyframes musicBounce {
-  0% { height: 4px; }
-  100% { height: 14px; }
-}
 
 /* ===== Dock ===== */
 .dock-wrapper {
@@ -797,12 +776,6 @@ html, body, #root {
   letter-spacing: 0.5px;
 }
 
-.window-content p {
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-}
 
 
 /* ===== Photo Gallery ===== */

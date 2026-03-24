@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import TopBar from './components/TopBar'
 import Desktop from './components/Desktop'
@@ -9,11 +9,6 @@ import ContextMenu from './components/ContextMenu'
 import Notification from './components/Notification'
 import { PROFILE } from './data/siteConfig'
 
-export const AppContext = createContext()
-
-export function useApp() {
-  return useContext(AppContext)
-}
 
 
 function Wallpaper() {
@@ -38,7 +33,6 @@ const TIPS = [
 export default function App() {
   const [openFolder, setOpenFolder] = useState(null)
   const [folderOrigin, setFolderOrigin] = useState({ x: 0, y: 0 })
-  const [musicPlaying, setMusicPlaying] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
   const [contextMenu, setContextMenu] = useState(null)
   const [notifications, setNotifications] = useState([])
@@ -86,7 +80,7 @@ export default function App() {
   }, [contextMenu])
 
   return (
-    <AppContext.Provider value={{ musicPlaying, setMusicPlaying }}>
+    <>
       <AnimatePresence>
         {showSplash && <Splash onComplete={() => setShowSplash(false)} />}
       </AnimatePresence>
@@ -106,7 +100,7 @@ export default function App() {
       {/* Notifications */}
       <div className="notification-stack">
         <AnimatePresence>
-          {notifications.map((notif, i) => (
+          {notifications.map((notif) => (
             <Notification
               key={notif.id}
               title={notif.title}
@@ -146,6 +140,6 @@ export default function App() {
           />
         )}
       </AnimatePresence>
-    </AppContext.Provider>
+    </>
   )
 }

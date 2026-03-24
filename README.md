@@ -1,86 +1,74 @@
 # Ashna Jain — Portfolio + AI Agent
 
-A personal portfolio website styled as an interactive desktop environment, featuring an AI chatbot agent that can answer questions about me using multi-source retrieval, tool calling, and sandboxed code execution.
+A personal portfolio website styled as an interactive desktop environment, featuring an AI chatbot that answers questions using multi-source RAG, tool calling, and cross-source data correlation — all streamed through a terminal interface.
 
-**Live:** [ashnajain.com](https://ashnajain.com) (frontend)
+**Live:** [ashnajain.com](https://ashnajain.com)
 
 ---
 
 ## System Architecture
 
 ```
-                                    +------------------+
-                                    |   Portfolio UI   |
-                                    |  (React + Vite)  |
-                                    |                  |
-                                    |  Desktop Theme   |
-                                    |  - Draggable     |
-                                    |    windows       |
-                                    |  - Browser       |
-                                    |    widgets       |
-                                    |  - iMessage      |
-                                    |    chat UI       |
-                                    +--------+---------+
-                                             |
-                                        SSE Stream
-                                             |
-                                             v
-+------------------------------------------------------------------------------------+
-|                            Express Backend (TypeScript)                             |
-|                                                                                    |
-|  +------------------+     +------------------+     +----------------------------+  |
-|  |   Chat Route     |     |   Query Planner  |     |       Agent Loop           |  |
-|  |   (SSE Stream)   +---->+   (GPT-4o-mini)  +---->+   Plan -> Tools -> Answer  |  |
-|  |   POST /api/chat |     |   simple/complex |     |   (GPT-4o + streaming)     |  |
-|  +------------------+     +------------------+     +-------------+--------------+  |
-|                                                                  |                 |
-|                                    +-----------------------------+                 |
-|                                    |                                               |
-|                                    v                                               |
-|  +----------------------------------------------------------------------+          |
-|  |                         Tool Registry                                |          |
-|  |                                                                      |          |
-|  |  +----------------+  +----------------+  +--------------------+      |          |
-|  |  | searchResume   |  | searchNews-    |  | searchKnowledge    |      |          |
-|  |  | (pgvector RAG) |  | letter (RAG)   |  | (pgvector RAG)     |      |          |
-|  |  +-------+--------+  +-------+--------+  +---------+----------+      |          |
-|  |          |                    |                     |                 |          |
-|  |          +----------+---------+---------------------+                |          |
-|  |                     |                                                |          |
-|  |                     v                                                |          |
-|  |           +---------+----------+                                     |          |
-|  |           |    Neon pgvector   |   117 embedded documents            |          |
-|  |           |    Vector Store    |   - 14 resume chunks                |          |
-|  |           |                    |   - 89 newsletter chunks            |          |
-|  |           |   Hybrid Retrieval |   - 14 knowledge base entries       |          |
-|  |           |   + Re-ranking     |                                     |          |
-|  |           +--------------------+                                     |          |
-|  |                                                                      |          |
-|  |  +----------------+  +----------------+  +--------------------+      |          |
-|  |  | searchJournal  |  | getJournal-    |  | searchGithub       |      |          |
-|  |  | (Stats API)    |  | Entry (by date)|  | (GitHub API)       |      |          |
-|  |  +-------+--------+  +-------+--------+  +---------+----------+      |          |
-|  |          |                    |                     |                 |          |
-|  |          v                    v                     v                 |          |
-|  |  Eternal Entries     Eternal Entries       GitHub REST API            |          |
-|  |  /journal-stats      /journal-info         /users/repos/commits      |          |
-|  |                                                                      |          |
-|  |  +------------------------------------------------------------+     |          |
-|  |  | executeAnalysis (E2B Sandbox)                               |     |          |
-|  |  |                                                             |     |          |
-|  |  |  LLM generates Python -> sandbox executes -> JSON result    |     |          |
-|  |  |                                                             |     |          |
-|  |  |  Helpers: get_github_commits(), get_journal_entries(),      |     |          |
-|  |  |  get_mood_for_date(), correlate_activity(), group_by_day()  |     |          |
-|  |  +------------------------------------------------------------+     |          |
-|  +----------------------------------------------------------------------+          |
-|                                                                                    |
-|  +------------------+                                                              |
-|  | Session Memory   |  Chat history, context window management,                    |
-|  |                  |  truncation strategy, auto-cleanup                            |
-|  +------------------+                                                              |
-+------------------------------------------------------------------------------------+
+                                 +--------------------+
+                                 |   Portfolio UI     |
+                                 |   React + Vite     |
+                                 |                    |
+                                 |  Desktop with      |
+                                 |  draggable windows |
+                                 |  + Terminal Chat   |
+                                 +---------+----------+
+                                           |
+                                      SSE Stream
+                                           |
+                                           v
++--------------------------------------------------------------------------------+
+|                        Express Backend (TypeScript)                             |
+|                                                                                |
+|  +--------------+     +---------------+     +----------------------------+     |
+|  |  Chat Route  |     | Query Planner |     |       Agent Loop           |     |
+|  |  POST /chat  +---->+ (GPT-4o-mini) +---->+  Plan -> Tools -> Answer   |     |
+|  |  SSE stream  |     | Selects tools |     |  (GPT-4o + streaming)      |     |
+|  +--------------+     +---------------+     +------------+---------------+     |
+|                                                          |                     |
+|                              +---------------------------+                     |
+|                              |                                                 |
+|                              v                                                 |
+|  +------------------------------------------------------------------+          |
+|  |                      Tool Registry                               |          |
+|  |                                                                  |          |
+|  |  RAG Tools (pgvector)          Live API Tools                    |          |
+|  |  +----------------+           +------------------+               |          |
+|  |  | searchResume   |           | searchJournal    |               |          |
+|  |  | searchNews-    |           | getJournalEntry  |               |          |
+|  |  |   letter       |           | searchGithub     |               |          |
+|  |  | searchKnow-    |           +------------------+               |          |
+|  |  |   ledge        |                                              |          |
+|  |  +-------+--------+           Cross-Source Tool                  |          |
+|  |          |                    +------------------+               |          |
+|  |          v                    | correlate-       |               |          |
+|  |  +-------+--------+          |   Activity       |               |          |
+|  |  | Neon pgvector  |          | GitHub x Journal |               |          |
+|  |  | 123 documents  |          | date correlation |               |          |
+|  |  | Hybrid search  |          +------------------+               |          |
+|  |  | + re-ranking   |                                              |          |
+|  |  +----------------+                                              |          |
+|  +------------------------------------------------------------------+          |
+|                                                                                |
+|  +------------------+                                                          |
+|  | Session Memory   |  Context window management + auto-cleanup                |
+|  +------------------+                                                          |
++--------------------------------------------------------------------------------+
 ```
+
+## How It Works
+
+1. **User types a question** in the terminal-style chat interface
+2. **Query Planner** (GPT-4o-mini) analyzes the question and selects 1-3 relevant tools — this filters which tools the main LLM sees, reducing token cost and improving accuracy
+3. **Agent Loop** (GPT-4o) calls the selected tools via OpenAI function calling:
+   - **RAG tools** embed the query and perform cosine similarity search over 123 documents in pgvector, with metadata-aware re-ranking
+   - **API tools** fetch live data from Eternal Entries (journal) and GitHub
+   - **Correlation tool** cross-references commit dates with journal entries for multi-source analysis
+4. **Streaming response** — tokens are delivered via SSE as they're generated, with source attribution
 
 ## Tech Stack
 
@@ -88,34 +76,22 @@ A personal portfolio website styled as an interactive desktop environment, featu
 |-------|-----------|
 | Frontend | React 18, Framer Motion, Vite |
 | Backend | Express, TypeScript, Zod |
-| LLM | OpenAI GPT-4o (agent), GPT-4o-mini (planner) |
-| Embeddings | OpenAI text-embedding-3-small (1536d) |
+| LLM | GPT-4o (agent), GPT-4o-mini (query planner) |
+| Embeddings | text-embedding-3-small (1536d) |
 | Vector DB | Neon PostgreSQL + pgvector |
-| Sandbox | E2B Code Interpreter (Python) |
-| Data Sources | Resume (static), Beehiiv API, Eternal Entries API, GitHub API |
+| Data Sources | Resume, Beehiiv newsletter, Eternal Entries journal, GitHub API |
 
-## Agent Architecture
+## Tools
 
-The chatbot implements a full agentic AI system:
-
-1. **Query Planning** — GPT-4o-mini classifies queries as simple or complex and selects tools
-2. **Tool Execution** — OpenAI function calling dispatches to registered tools
-3. **RAG Pipeline** — Semantic search over 117 embedded documents with hybrid retrieval + re-ranking
-4. **Sandbox Execution** — Complex cross-source queries generate Python code executed in E2B
-5. **Streaming** — SSE delivers plan, tool calls, and tokens in real-time to the UI
-6. **Memory** — Session-based chat history with context window management
-
-### Tools
-
-| Tool | Type | Source | Description |
-|------|------|--------|-------------|
-| `searchResume` | RAG | pgvector | Semantic search over resume |
-| `searchNewsletter` | RAG | pgvector | Semantic search over newsletter articles |
-| `searchKnowledge` | RAG | pgvector | Search personal knowledge base |
-| `searchJournal` | Live API | Eternal Entries | Aggregated journaling statistics |
-| `getJournalEntry` | Live API | Eternal Entries | Per-date entry metadata (mood, weather, song) |
-| `searchGithub` | Live API | GitHub | Profile, repos, commits |
-| `executeAnalysis` | Sandbox | E2B | Python code execution for cross-source analysis |
+| Tool | Type | What it does |
+|------|------|-------------|
+| `searchResume` | RAG | Semantic search over resume chunks (experience, education, skills, awards) |
+| `searchNewsletter` | RAG | Semantic search over newsletter article chunks |
+| `searchKnowledge` | RAG | Search personal knowledge base (philosophy, motivations, career goals) |
+| `searchJournal` | Live API | Aggregated journaling stats (mood trends, streaks, music, weather) |
+| `getJournalEntry` | Live API | Per-date entry metadata (mood, weather, song, location, time) |
+| `searchGithub` | Live API | GitHub profile, repos, and recent commits |
+| `correlateActivity` | Cross-source | Date-level correlation between GitHub commits and journal entries |
 
 ## Running Locally
 
@@ -134,12 +110,11 @@ npm run dev            # Start on :3001
 ## Environment Variables
 
 ```
-OPENAI_API_KEY=        # OpenAI API key
-DATABASE_URL=          # Neon PostgreSQL connection string
-E2B_API_KEY=           # E2B sandbox API key
-JOURNAL_API_URL=       # Eternal Entries stats endpoint
-JOURNAL_API_KEY=       # Eternal Entries API key
-BEEHIIV_API_KEY=       # Beehiiv newsletter API key
+OPENAI_API_KEY=         # OpenAI API key
+DATABASE_URL=           # Neon PostgreSQL connection string
+JOURNAL_API_URL=        # Eternal Entries stats endpoint
+JOURNAL_API_KEY=        # Eternal Entries API key
+BEEHIIV_API_KEY=        # Beehiiv newsletter API key
 BEEHIIV_PUBLICATION_ID= # Beehiiv publication ID
 ```
 
@@ -147,24 +122,25 @@ BEEHIIV_PUBLICATION_ID= # Beehiiv publication ID
 
 ```
 /
-├── src/                    # Frontend (React + Vite)
+├── src/                     # Frontend (React + Vite)
 │   ├── components/
-│   │   ├── ChatWidget.jsx  # iMessage-style AI chat
-│   │   ├── Desktop.jsx     # Desktop environment
-│   │   ├── BrowserWidget.jsx
-│   │   ├── Terminal.jsx
+│   │   ├── Terminal.jsx     # AI chat with terminal UI
+│   │   ├── Desktop.jsx      # Desktop environment + icon management
+│   │   ├── BrowserWidget.jsx # Embedded iframe browser
+│   │   ├── ResumeViewer.jsx  # PDF-style resume viewer
 │   │   └── ...
-│   └── data/siteConfig.js  # Single source of truth for site content
+│   └── data/siteConfig.js   # Single source of truth for all site content
 │
-└── server/                 # Backend (Express + TypeScript)
+└── server/                  # Backend (Express + TypeScript)
     └── src/
-        ├── agent/          # Agent loop, planner, memory
-        ├── data/           # Data connectors (resume, journal, github, newsletter, knowledge)
-        ├── rag/            # Embeddings, vector store, hybrid retriever
-        ├── sandbox/        # E2B code execution engine
-        ├── tools/          # Tool registry + all tool implementations
-        ├── routes/         # Express routes (chat SSE endpoint)
-        └── scripts/        # Seed script for pgvector
+        ├── agent/           # Agent loop, query planner, session memory
+        ├── config/          # Environment, constants, OpenAI client
+        ├── data/            # Data connectors (resume, journal, github, newsletter, knowledge)
+        ├── rag/             # Embeddings, pgvector store, hybrid retriever
+        ├── tools/           # Tool registry + all tool implementations
+        ├── routes/          # SSE chat endpoint
+        ├── utils/           # Shared utilities
+        └── scripts/         # Vector store seed script
 ```
 
 Built by Ashna Jain with Claude Code.

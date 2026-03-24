@@ -18,9 +18,6 @@ export const CACHE_TTL_SHORT = 5 * 60 * 1000;   // 5 min — journal stats
 export const CACHE_TTL_MEDIUM = 10 * 60 * 1000;  // 10 min — github data
 export const MAX_CACHE_ENTRIES = 100;
 
-// Sandbox
-export const SANDBOX_TIMEOUT_MS = 30_000;
-
 // Pagination safety
 export const MAX_PAGINATION_PAGES = 20;
 
