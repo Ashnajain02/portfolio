@@ -137,6 +137,58 @@ export async function searchSimilar(
 }
 
 /**
+ * Metadata search: fetches documents by source/category with ordering.
+ * Used for temporal queries ("most recent", "oldest") where semantic
+ * similarity is less relevant than chronological order.
+ */
+export async function searchByMetadata(options: {
+  source?: DataSource;
+  category?: string;
+  orderBy?: 'newest' | 'oldest';
+  limit?: number;
+}): Promise<SearchResult[]> {
+  const { source, category, orderBy = 'newest', limit = 3 } = options;
+  const db = getPool();
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIdx = 1;
+
+  if (source) {
+    conditions.push(`source = $${paramIdx++}`);
+    params.push(source);
+  }
+  if (category) {
+    conditions.push(`metadata->>'category' = $${paramIdx++}`);
+    params.push(category);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const order = orderBy === 'newest' ? 'DESC' : 'ASC';
+
+  params.push(limit);
+
+  const result = await db.query(
+    `SELECT id, source, content, metadata
+     FROM documents
+     ${where}
+     ORDER BY metadata->>'timestamp' ${order} NULLS LAST
+     LIMIT $${paramIdx}`,
+    params,
+  );
+
+  return result.rows.map((row: { id: string; source: string; content: string; metadata: Record<string, unknown> }) => ({
+    document: {
+      id: row.id,
+      source: row.source as DataSource,
+      content: row.content,
+      metadata: row.metadata,
+    },
+    score: 1.0, // Metadata matches are high-confidence
+  }));
+}
+
+/**
  * Clears all documents from a specific source.
  * Useful when re-seeding data.
  */

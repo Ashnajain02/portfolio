@@ -1,5 +1,5 @@
 import { embedText } from './embeddings.js';
-import { searchSimilar } from './vectorStore.js';
+import { searchSimilar, searchByMetadata } from './vectorStore.js';
 import type { DataSource, SearchResult } from '../types/index.js';
 
 interface RetrievalOptions {
@@ -18,9 +18,37 @@ const STOP_WORDS = new Set([
   'you', 'me', 'she', 'he', 'they', 'we', 'it', 'tell', 'more',
 ]);
 
+const TEMPORAL_NEWEST = /\b(most recent|latest|newest|last|current)\b/i;
+const TEMPORAL_OLDEST = /\b(first|oldest|earliest|original)\b/i;
+
 /**
- * Hybrid retriever: embeds the query, performs semantic search,
- * then re-ranks results with keyword and metadata boosting.
+ * Detects if the query has temporal intent and which source it targets.
+ */
+function detectTemporalIntent(query: string): { order: 'newest' | 'oldest'; source?: DataSource; category?: string } | null {
+  const isNewest = TEMPORAL_NEWEST.test(query);
+  const isOldest = TEMPORAL_OLDEST.test(query);
+  if (!isNewest && !isOldest) return null;
+
+  const order = isOldest ? 'oldest' : 'newest';
+  const lower = query.toLowerCase();
+
+  // Detect which source the temporal query targets
+  if (lower.includes('newsletter') || lower.includes('article') || lower.includes('undercover')) {
+    return { order, source: 'newsletter', category: 'article_summary' };
+  }
+  if (lower.includes('journal') || lower.includes('entry') || lower.includes('diary')) {
+    return { order }; // Journal is live API, not embedded — no metadata search
+  }
+
+  // Generic temporal query — search across all summaries
+  return { order };
+}
+
+/**
+ * Hybrid retriever:
+ * 1. Always runs semantic search (cosine similarity on embeddings)
+ * 2. If temporal intent detected, also runs metadata search (SQL ORDER BY timestamp)
+ * 3. Merges and deduplicates results, re-ranks with keyword/tag boosting
  */
 export async function retrieve(
   query: string,
@@ -28,40 +56,59 @@ export async function retrieve(
 ): Promise<SearchResult[]> {
   const { limit = 5, threshold = 0.3, sources } = options;
 
+  // Run semantic search
   const queryEmbedding = await embedText(query);
-
-  const results = await searchSimilar(queryEmbedding, {
+  const semanticResults = await searchSimilar(queryEmbedding, {
     limit: limit * 2,
     threshold,
     sources,
   });
+
+  // Check for temporal intent and merge metadata results
+  const temporal = detectTemporalIntent(query);
+  let mergedResults = [...semanticResults];
+
+  if (temporal) {
+    const metadataResults = await searchByMetadata({
+      source: temporal.source,
+      category: temporal.category,
+      orderBy: temporal.order,
+      limit: 3,
+    });
+
+    // Merge: add metadata results that aren't already in semantic results
+    const existingIds = new Set(semanticResults.map(r => r.document.id));
+    for (const r of metadataResults) {
+      if (!existingIds.has(r.document.id)) {
+        mergedResults.push(r);
+      }
+    }
+  }
 
   // Extract meaningful query terms (filter stop words)
   const queryTerms = query.toLowerCase()
     .split(/\s+/)
     .filter(t => t.length > 2 && !STOP_WORDS.has(t));
 
-  const reranked = results.map(result => {
+  // Re-rank with keyword and metadata boosting
+  const reranked = mergedResults.map(result => {
     let boost = 0;
     const { metadata, content } = result.document;
     const lowerContent = content.toLowerCase();
 
-    // Keyword match in content (moderate boost)
     for (const term of queryTerms) {
       if (lowerContent.includes(term)) boost += 0.06;
     }
 
-    // Tag match (strong signal — tags are curated)
-    if (metadata.tags) {
-      for (const tag of metadata.tags) {
+    if (metadata.tags && Array.isArray(metadata.tags)) {
+      for (const tag of metadata.tags as string[]) {
         if (queryTerms.some(t => tag.toLowerCase().includes(t))) {
           boost += 0.1;
         }
       }
     }
 
-    // Title match (strong signal)
-    if (metadata.title) {
+    if (metadata.title && typeof metadata.title === 'string') {
       const lowerTitle = metadata.title.toLowerCase();
       for (const term of queryTerms) {
         if (lowerTitle.includes(term)) boost += 0.1;

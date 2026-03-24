@@ -32,6 +32,7 @@ Rules:
 - Ground every claim in the retrieved context or tool results. If the answer is not there, say "I don't have that info."
 - Never invent names, dates, numbers, or events.
 - If tools are available and the context is insufficient, call them.
+- When asked about "most recent" or "latest", look at the dates in the retrieved context to determine chronological order.
 - Convert any UTC timestamps to ${tz} before displaying.
 - Accept corrections gracefully.`;
 }
@@ -68,9 +69,12 @@ export async function runAgent(
 
   // Build RAG context string for the system prompt
   const ragContext = ragResults.length > 0
-    ? ragResults.map((r, i) =>
-        `[${i + 1}] (${r.document.source}${r.document.metadata.title ? ': ' + r.document.metadata.title : ''}, score: ${r.score.toFixed(2)})\n${r.document.content}`
-      ).join('\n\n')
+    ? ragResults.map((r, i) => {
+        const meta = r.document.metadata;
+        const date = meta.timestamp ? ` | ${meta.timestamp.toString().slice(0, 10)}` : '';
+        const title = meta.title ? `: ${meta.title}` : '';
+        return `[${i + 1}] (${r.document.source}${title}${date})\n${r.document.content}`;
+      }).join('\n\n')
     : '';
 
   // Track RAG sources
