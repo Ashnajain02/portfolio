@@ -137,6 +137,61 @@ export async function searchSimilar(
 }
 
 /**
+ * Keyword search: finds documents whose tags or content match query terms.
+ * Uses PostgreSQL JSONB array containment and text search.
+ */
+export async function searchByKeywords(
+  keywords: string[],
+  options: { limit?: number; sources?: DataSource[] } = {},
+): Promise<SearchResult[]> {
+  if (keywords.length === 0) return [];
+  const { limit = 10, sources } = options;
+  const db = getPool();
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIdx = 1;
+
+  // Match any keyword in the JSONB tags array OR in content
+  const keywordConditions = keywords.map(kw => {
+    const kwParam = `$${paramIdx++}`;
+    params.push(`%${kw}%`);
+    return `(content ILIKE ${kwParam} OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(metadata->'tags') t WHERE t ILIKE ${kwParam}))`;
+  });
+  conditions.push(`(${keywordConditions.join(' OR ')})`);
+
+  if (sources && sources.length > 0) {
+    conditions.push(`source = ANY($${paramIdx++})`);
+    params.push(sources);
+  }
+
+  params.push(limit);
+
+  const result = await db.query(
+    `SELECT id, source, content, metadata,
+       (${keywords.map((_, i) => {
+         const kwParam = `$${i + 1}`;
+         return `CASE WHEN content ILIKE ${kwParam} THEN 0.15 ELSE 0 END + CASE WHEN EXISTS (SELECT 1 FROM jsonb_array_elements_text(metadata->'tags') t WHERE t ILIKE ${kwParam}) THEN 0.2 ELSE 0 END`;
+       }).join(' + ')}) AS keyword_score
+     FROM documents
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY keyword_score DESC
+     LIMIT $${paramIdx}`,
+    params,
+  );
+
+  return result.rows.map((row: { id: string; source: string; content: string; metadata: Record<string, unknown>; keyword_score: string }) => ({
+    document: {
+      id: row.id,
+      source: row.source as DataSource,
+      content: row.content,
+      metadata: row.metadata,
+    },
+    score: parseFloat(row.keyword_score) || 0,
+  }));
+}
+
+/**
  * Metadata search: fetches documents by source/category with ordering.
  * Used for temporal queries ("most recent", "oldest") where semantic
  * similarity is less relevant than chronological order.
