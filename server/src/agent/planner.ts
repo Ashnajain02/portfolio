@@ -9,7 +9,7 @@ Available tools:
 - searchResume: Semantic search over resume (experience, skills, awards, education)
 - searchJournal: Aggregated journaling stats (moods, streaks, music, weather, activity)
 - getJournalEntry: Per-date journal entry metadata (mood, weather, song, location)
-- searchGithub: GitHub profile, repos, commits
+- searchGithub: GitHub profile, repos, commits, and README content for any repo
 - searchNewsletter: Semantic search over "Undercover Agents" newsletter articles
 - searchKnowledge: Personal knowledge base (philosophy, motivations, career goals, detailed stories)
 - correlateActivity: Cross-reference GitHub commits with journal entries (overlapping days, mood on coding days, day-of-week patterns)

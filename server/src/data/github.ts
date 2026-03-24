@@ -91,6 +91,20 @@ export async function fetchRepos(limit: number = 20): Promise<GitHubRepo[]> {
   return repos.filter(r => !r.fork);
 }
 
+export async function fetchReadme(repo: string): Promise<string | null> {
+  try {
+    const data = await cachedFetch<{ content: string; encoding: string }>(
+      `${GITHUB_API}/repos/${GITHUB_USERNAME}/${repo}/readme`,
+    );
+    if (data.encoding === 'base64') {
+      return Buffer.from(data.content, 'base64').toString('utf-8');
+    }
+    return data.content;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchRecentCommits(repo: string, limit: number = 10): Promise<GitHubCommit[]> {
   return cachedFetch<GitHubCommit[]>(
     `${GITHUB_API}/repos/${GITHUB_USERNAME}/${repo}/commits?per_page=${limit}`,
