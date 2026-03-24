@@ -11,8 +11,8 @@ import type { AgentPlan } from '../types/index.js';
 const PLANNER_PROMPT = `You are a query router. Given a user question and any retrieved context, decide if live tools are needed.
 
 Tools:
-- searchJournal: Aggregated journal stats (streaks, mood trends, entry counts, last entry date)
-- getJournalEntry: Specific date's journal metadata (mood, weather, song, location)
+- searchJournal: Live journal stats — streaks, mood trends, entry counts, favorite time/day, music, weather patterns, last entry date
+- getJournalEntry: Specific date's journal entry — mood, weather, song, location, time
 - searchGithub: GitHub profile, repo list, commits, or README content
 - correlateActivity: Cross-reference GitHub commits with journal entries
 
@@ -20,9 +20,10 @@ Decision rules:
 1. If retrieved context fully answers the question → needsTools: false.
 2. If retrieved context is empty or insufficient → needsTools: true.
 3. Live/temporal words ("now", "currently", "recently", "latest", "last") → needsTools: true.
-4. Project detail questions ("how does X work", "what features") → searchGithub (README).
-5. Cross-source patterns ("journal + code", "mood when coding") → correlateActivity.
-6. Select only the tools truly needed, at most 3.
+4. ANY question about journaling habits, mood, streaks, music, weather, time patterns → searchJournal (this is live data, not in RAG).
+5. Project detail questions ("how does X work", "what features") → searchGithub (README).
+6. Cross-source patterns ("journal + code", "mood when coding") → correlateActivity.
+7. Select only the tools truly needed, at most 3.
 
 Respond with JSON only:
 { "needsTools": true/false, "tools": ["toolName"], "reasoning": "one sentence" }`;
