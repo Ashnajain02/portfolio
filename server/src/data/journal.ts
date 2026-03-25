@@ -191,50 +191,25 @@ export function formatJournalEntry(entry: JournalEntry): string {
  * that the LLM can use to answer questions.
  */
 export function formatJournalStats(stats: JournalStats): string {
-  const lines: string[] = [];
-
-  // Activity
-  lines.push(`Ashna has written ${stats.activity.totalEntries} journal entries total across ${stats.activity.totalDaysJournaled} days.`);
-  const lastDate = new Date(stats.activity.lastEntryDate);
-  const firstDate = new Date(stats.activity.firstEntryDate);
-  lines.push(`Last journal entry date and time: ${lastDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${lastDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}. (raw: ${stats.activity.lastEntryDate})`);
-  lines.push(`First ever journal entry: ${firstDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`);
-  lines.push(`NOTE: The API only provides the DATE of the last entry. Mood, weather, location, and song for specific entries are NOT available — only aggregate stats. Do NOT guess per-entry details from aggregate data.`);
-  lines.push(`This week: ${stats.activity.entriesThisWeek} entries. This month: ${stats.activity.entriesThisMonth}. This year: ${stats.activity.entriesThisYear}.`);
-  lines.push(`Average: ${stats.activity.avgEntriesPerWeek} entries per week.`);
-
-  // Streaks
-  lines.push(`Current journaling streak: ${stats.streaks.current} days. Longest streak ever: ${stats.streaks.longest} days.`);
-
-  // Time patterns
-  lines.push(`Favorite time to journal: ${stats.timePatterns.favoriteHour.hour} (${stats.timePatterns.favoriteHour.count} entries).`);
-  lines.push(`Most active day: ${stats.timePatterns.favoriteDay.day} (${stats.timePatterns.favoriteDay.count} entries).`);
-
-  // Mood
-  lines.push(`Current mood: ${stats.mood.current}.`);
-  lines.push(`Most frequent mood overall: ${stats.mood.mostFrequent.mood} (${stats.mood.mostFrequent.count} times).`);
-  lines.push(`Most frequent mood this month: ${stats.mood.mostFrequentThisMonth.mood} (${stats.mood.mostFrequentThisMonth.count} times).`);
-
-  const moodEntries = Object.entries(stats.mood.distribution)
+  const song = stats.music.recentSong;
+  const moods = Object.entries(stats.mood.distribution)
     .sort(([, a], [, b]) => b - a)
-    .map(([mood, count]) => `${mood}: ${count}`)
+    .map(([mood, count]) => `${mood}(${count})`)
     .join(', ');
-  lines.push(`Mood distribution: ${moodEntries}.`);
 
-  // Music
-  if (stats.music.recentSong) {
-    lines.push(`Most recent song paired with a journal entry: "${stats.music.recentSong.name}" by ${stats.music.recentSong.artist} (album: ${stats.music.recentSong.album}).`);
-  }
-  lines.push(`${stats.music.entriesWithSongs} entries have songs attached (${stats.music.uniqueArtists} unique artists). ${stats.music.entriesWithoutSongs} entries have no song.`);
-
-  // Weather
-  lines.push(`Most common weather when journaling: ${stats.weather.mostCommonCondition.condition} (${stats.weather.mostCommonCondition.count} times).`);
-  lines.push(`Average temperature: ${stats.weather.averageTemperatureCelsius}°C.`);
-  lines.push(`Most common location: ${stats.weather.mostCommonLocation.location} (${stats.weather.mostCommonLocation.count} entries).`);
-
-  // Writing
-  lines.push(`Total words written: ${stats.writing.totalWords}. Average word count per entry: ${stats.writing.avgWordCount}.`);
-  lines.push(`${stats.writing.entriesWithReflections} entries include reflections.`);
-
-  return lines.join(' ');
+  // Structured key-value format — easier for LLM to scan and extract specific values
+  return [
+    `ACTIVITY: ${stats.activity.totalEntries} total entries | ${stats.activity.totalDaysJournaled} days journaled | avg ${stats.activity.avgEntriesPerWeek}/week`,
+    `THIS PERIOD: ${stats.activity.entriesThisWeek} this week | ${stats.activity.entriesThisMonth} this month | ${stats.activity.entriesThisYear} this year`,
+    `LAST ENTRY: ${stats.activity.lastEntryDate} | FIRST ENTRY: ${stats.activity.firstEntryDate}`,
+    `STREAKS: current ${stats.streaks.current} days | longest ${stats.streaks.longest} days`,
+    `TIME PATTERNS: favorite hour ${stats.timePatterns.favoriteHour.hour} (${stats.timePatterns.favoriteHour.count}x) | favorite day ${stats.timePatterns.favoriteDay.day} (${stats.timePatterns.favoriteDay.count}x)`,
+    `MOOD: current=${stats.mood.current} | most frequent=${stats.mood.mostFrequent.mood}(${stats.mood.mostFrequent.count}x) | this month=${stats.mood.mostFrequentThisMonth.mood}`,
+    `MOOD DISTRIBUTION: ${moods}`,
+    `MUSIC: ${song ? `recent="${song.name}" by ${song.artist}` : 'no recent song'} | ${stats.music.entriesWithSongs} entries with songs | ${stats.music.uniqueArtists} artists`,
+    `WEATHER: most common=${stats.weather.mostCommonCondition.condition}(${stats.weather.mostCommonCondition.count}x) | avg temp=${stats.weather.averageTemperatureCelsius}°C`,
+    `LOCATION: most common=${stats.weather.mostCommonLocation.location} (${stats.weather.mostCommonLocation.count} entries)`,
+    `WRITING: ${stats.writing.totalWords} words total | avg ${stats.writing.avgWordCount}/entry | ${stats.writing.entriesWithReflections} with reflections`,
+    `NOTE: For per-entry details (mood/weather/song on a specific date), use getJournalEntry tool.`,
+  ].join('\n');
 }

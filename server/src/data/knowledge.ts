@@ -63,6 +63,11 @@ const KNOWLEDGE_ENTRIES = [
     tags: ['personal', 'fun facts', 'moon', 'propinquity', 'tjx'],
   },
   {
+    title: 'This portfolio website',
+    content: `This website (about-ashna-jain.vercel.app) is styled as an interactive desktop environment with draggable windows, a dock, and sticky notes. It was built with React, Vite, and Framer Motion. The terminal you're chatting in is an AI chatbot powered by a multi-source RAG pipeline — it embeds my resume, newsletter articles, and personal knowledge base into pgvector, then uses hybrid retrieval (semantic + keyword + temporal search with Reciprocal Rank Fusion) to find relevant context before the LLM responds. Live data comes from the Eternal Entries journal API and GitHub API. The backend runs on Express/TypeScript deployed on Railway, frontend on Vercel. You can also view my resume as a PDF by clicking the Resume.pdf icon on the desktop, and download it from there.`,
+    tags: ['portfolio', 'website', 'how built', 'chatbot', 'rag', 'architecture', 'desktop', 'terminal', 'resume pdf', 'download'],
+  },
+  {
     title: 'Parivartan pitch competition',
     content: `My team and I won 1st place at the JIA Pitch Competition with "Parivartan" — a clothing pop-up concept featuring swap, stitch, and repurpose stations to promote sustainable fashion. I advanced through 4 rounds and delivered the final pitch to 900 attendees. I surveyed 200+ participants and used Python data analysis to drive every product decision. Great pitches aren't about flashy slides — they're about deeply understanding your audience and backing every claim with data.`,
     tags: ['pitch', 'parivartan', 'sustainability', 'competition'],
