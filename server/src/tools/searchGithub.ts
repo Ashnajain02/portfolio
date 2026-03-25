@@ -16,8 +16,8 @@ const searchGithub: ToolDefinition = {
     properties: {
       action: {
         type: 'string',
-        enum: ['overview', 'repos', 'commits', 'readme'],
-        description: '"overview" for profile + repo summary, "repos" for repo list, "commits" for recent commits, "readme" for repo README content.',
+        enum: ['overview', 'repos', 'commits', 'readme', 'recent_activity'],
+        description: '"overview" = profile + repos. "repos" = repo list. "commits" = commits for a specific repo (requires repo param). "readme" = README for a repo. "recent_activity" = recent commits across ALL active repos (no repo param needed).',
       },
       repo: {
         type: 'string',
@@ -106,6 +106,33 @@ const searchGithub: ToolDefinition = {
           return {
             success: true,
             data: { repo, readme: truncated },
+            source: 'github',
+          };
+        }
+
+        case 'recent_activity': {
+          const repos = await fetchRepos();
+          const topRepos = repos.slice(0, 3);
+          const allCommits = await Promise.all(
+            topRepos.map(async (r) => {
+              try {
+                const commits = await fetchRecentCommits(r.name, 5);
+                return commits.map(c => ({
+                  repo: r.name,
+                  message: c.commit.message,
+                  date: c.commit.author.date.slice(0, 10),
+                }));
+              } catch { return []; }
+            })
+          );
+          const merged = allCommits.flat().sort((a, b) => b.date.localeCompare(a.date));
+          const dateRange = merged.length > 0 ? `${merged[merged.length - 1].date} to ${merged[0].date}` : 'none';
+          return {
+            success: true,
+            data: {
+              note: `Recent commits across top ${topRepos.length} repos (${dateRange}).`,
+              commits: merged,
+            },
             source: 'github',
           };
         }

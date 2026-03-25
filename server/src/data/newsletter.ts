@@ -143,5 +143,23 @@ export async function getNewsletterDocuments(): Promise<DataDocument[]> {
     }
   }
 
+  // Add a newsletter overview document for count/meta questions
+  if (docs.length > 0) {
+    const articleSummaries = posts
+      .filter(p => p.content?.free?.web)
+      .map(p => `"${p.title}" (${new Date(p.publish_date * 1000).toISOString().slice(0, 10)})`)
+      .reverse(); // Chronological order
+
+    docs.push(createDocument('newsletter', [
+      `Ashna has published ${articleSummaries.length} newsletter articles for "Undercover Agents" as of ${new Date().toISOString().slice(0, 10)}.`,
+      `Articles in chronological order: ${articleSummaries.join(', ')}.`,
+    ].join(' '), {
+      category: 'newsletter_overview',
+      title: 'Newsletter Overview',
+      tags: ['newsletter', 'overview', 'count', 'articles', 'undercover agents', ...extractKeywords(articleSummaries.join(' '))],
+      sourceRef: 'Newsletter > Overview',
+    }));
+  }
+
   return docs;
 }

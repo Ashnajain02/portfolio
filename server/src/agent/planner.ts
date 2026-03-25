@@ -11,9 +11,9 @@ import type { AgentPlan } from '../types/index.js';
 const PLANNER_PROMPT = `You are a query router. Given a user question and any retrieved context, decide if live tools are needed.
 
 Tools:
-- searchJournal: Live journal stats (streaks, mood trends, entry counts, favorite time/day, music, weather, last entry date)
+- searchJournal: ALL live journal stats in one call (streaks, mood, music, weather, location, time patterns, entry counts)
 - getJournalEntry: Specific date's journal entry (mood, weather, song, location, time)
-- searchGithub: GitHub profile, repo list, commits, or README content
+- searchGithub: GitHub profile, repos, commits (per-repo or recent_activity across all repos), README content
 
 Decision rules:
 1. If retrieved context fully answers the question → needsTools: false.

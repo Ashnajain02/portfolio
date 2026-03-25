@@ -1,55 +1,29 @@
 import { toolRegistry } from './registry.js';
 import { fetchJournalStats, fetchJournalEntries, formatJournalStats, formatJournalEntry } from '../data/journal.js';
-import type { JournalStats } from '../data/journal.js';
 import type { ToolDefinition } from '../types/index.js';
 import { getErrorMessage } from '../utils/errors.js';
 
 const searchJournalStats: ToolDefinition = {
   name: 'searchJournal',
   description: [
-    'Fetch Ashna\'s aggregated journaling statistics from her Eternal Entries diary app.',
-    'Returns: entry counts, streaks, mood distribution, favorite journaling times,',
-    'music paired with entries, weather patterns, writing habits, last/first entry dates.',
-    'Use for general questions about journaling habits, overall mood trends, or activity patterns.',
-    'For specific entries (mood/weather/song on a particular date), use getJournalEntry instead.',
+    'Fetch all of Ashna\'s aggregated journaling statistics.',
+    'Returns everything: entry counts, streaks, mood distribution, favorite time/day,',
+    'music stats, weather patterns, location, writing habits, last/first entry dates.',
+    'For specific entries on a date (mood/weather/song), use getJournalEntry instead.',
   ].join(' '),
   parameters: {
     type: 'object',
-    properties: {
-      category: {
-        type: 'string',
-        enum: ['all', 'activity', 'streaks', 'mood', 'music', 'weather', 'timePatterns', 'writing'],
-        description: 'Which category of journal stats to retrieve. Use "all" for a general question.',
-      },
-    },
-    required: ['category'],
+    properties: {},
     additionalProperties: false,
   },
-  execute: async (args) => {
-    const category = (args.category as string) || 'all';
-
+  execute: async () => {
     try {
       const stats = await fetchJournalStats();
-
       const timeRange = `Aggregate stats over ${stats.activity.totalEntries} entries from ${stats.activity.firstEntryDate?.slice(0, 10) || 'unknown'} to ${stats.activity.lastEntryDate?.slice(0, 10) || 'unknown'}`;
 
-      if (category === 'all') {
-        return {
-          success: true,
-          data: { timeRange, summary: formatJournalStats(stats), raw: stats },
-          source: 'journal',
-        };
-      }
-
-      const categoryData = (stats as unknown as Record<string, unknown>)[category];
       return {
         success: true,
-        data: {
-          timeRange,
-          category,
-          stats: categoryData ?? stats,
-          context: formatCategoryContext(category, stats),
-        },
+        data: { timeRange, summary: formatJournalStats(stats) },
         source: 'journal',
       };
     } catch (err) {
@@ -129,28 +103,6 @@ const getJournalEntry: ToolDefinition = {
     }
   },
 };
-
-function formatCategoryContext(category: string, stats: JournalStats): string {
-  switch (category) {
-    case 'activity':
-      return `${stats.activity.totalEntries} total entries across ${stats.activity.totalDaysJournaled} days. Last entry: ${stats.activity.lastEntryDate}. First entry: ${stats.activity.firstEntryDate}. ${stats.activity.entriesThisWeek} this week. Average ${stats.activity.avgEntriesPerWeek}/week.`;
-    case 'streaks':
-      return `Current streak: ${stats.streaks.current} days. Longest: ${stats.streaks.longest} days.`;
-    case 'mood':
-      return `Current mood: ${stats.mood.current}. Most frequent: ${stats.mood.mostFrequent.mood} (${stats.mood.mostFrequent.count}x). Distribution: ${Object.entries(stats.mood.distribution).map(([m, c]) => `${m}: ${c}`).join(', ')}.`;
-    case 'music':
-      const song = stats.music.recentSong;
-      return `Recent song: ${song ? `"${song.name}" by ${song.artist}` : 'none'}. ${stats.music.entriesWithSongs} entries with songs, ${stats.music.uniqueArtists} unique artists.`;
-    case 'weather':
-      return `Most common: ${stats.weather.mostCommonCondition.condition}. Avg temp: ${stats.weather.averageTemperatureCelsius}°C. Usually journals from ${stats.weather.mostCommonLocation.location}.`;
-    case 'timePatterns':
-      return `Favorite hour: ${stats.timePatterns.favoriteHour.hour}. Favorite day: ${stats.timePatterns.favoriteDay.day}.`;
-    case 'writing':
-      return `${stats.writing.totalWords} total words. Avg ${stats.writing.avgWordCount} words/entry. ${stats.writing.entriesWithReflections} entries with reflections.`;
-    default:
-      return '';
-  }
-}
 
 export function registerJournalTools(): void {
   toolRegistry.register(searchJournalStats);
