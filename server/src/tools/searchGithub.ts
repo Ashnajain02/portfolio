@@ -69,13 +69,17 @@ const searchGithub: ToolDefinition = {
             };
           }
           const commits = await fetchRecentCommits(repo);
+          const dates = commits.map(c => c.commit.author.date.slice(0, 10));
+          const dateRange = dates.length > 0 ? `${dates[dates.length - 1]} to ${dates[0]}` : 'none';
           return {
             success: true,
-            data: commits.map(c => ({
-              message: c.commit.message,
-              date: c.commit.author.date.slice(0, 10),
-              url: c.html_url,
-            })),
+            data: {
+              note: `Last ${commits.length} commits for ${repo} (${dateRange}). This is recent activity only, not all-time.`,
+              commits: commits.map(c => ({
+                message: c.commit.message,
+                date: c.commit.author.date.slice(0, 10),
+              })),
+            },
             source: 'github',
           };
         }

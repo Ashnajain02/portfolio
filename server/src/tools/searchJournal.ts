@@ -31,10 +31,12 @@ const searchJournalStats: ToolDefinition = {
     try {
       const stats = await fetchJournalStats();
 
+      const timeRange = `Aggregate stats over ${stats.activity.totalEntries} entries from ${stats.activity.firstEntryDate?.slice(0, 10) || 'unknown'} to ${stats.activity.lastEntryDate?.slice(0, 10) || 'unknown'}`;
+
       if (category === 'all') {
         return {
           success: true,
-          data: { summary: formatJournalStats(stats), raw: stats },
+          data: { timeRange, summary: formatJournalStats(stats), raw: stats },
           source: 'journal',
         };
       }
@@ -43,6 +45,7 @@ const searchJournalStats: ToolDefinition = {
       return {
         success: true,
         data: {
+          timeRange,
           category,
           stats: categoryData ?? stats,
           context: formatCategoryContext(category, stats),

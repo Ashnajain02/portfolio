@@ -31,9 +31,11 @@ Response style — this is a terminal UI:
 
 Rules:
 - ONLY state things explicitly present in the context or tool results. Never infer or assume.
+- Each context item has a relevance tag (high/medium/low). Only trust "high" relevance items as direct answers. "Low" relevance means the context is loosely related — do NOT use it to answer the question, say "I don't have that info" instead.
+- If asked for opinions on external topics (companies, politics, news), say "I don't have a take on that" — you are Ashna's portfolio chatbot, not a general assistant.
 - GitHub data only covers recent commits (last few weeks). Journal data covers the last 3 months. If asked about older dates, say "that's outside my data window."
-- If a tool returns empty results for a date, say so honestly. Do NOT claim activity happened if you have no evidence.
-- If tools are available and the context is insufficient, call them before answering.
+- If a tool returns empty results for a date, say so honestly.
+- If tools are available and the context is insufficient, call them.
 - When asked about "most recent" or "latest", use dates in the context to determine order.
 - Convert UTC timestamps to ${tz}.
 - Accept corrections gracefully.`;
@@ -74,7 +76,8 @@ export async function runAgent(
         const meta = r.document.metadata;
         const ref = meta.sourceRef ? ` | ${meta.sourceRef}` : '';
         const date = meta.timestamp ? ` | ${meta.timestamp.toString().slice(0, 10)}` : '';
-        return `[${i + 1}] (${r.document.source}${ref}${date})\n${r.document.content}`;
+        const relevance = r.score >= 0.015 ? 'high' : r.score >= 0.008 ? 'medium' : 'low';
+        return `[${i + 1}] (${r.document.source}${ref}${date} | relevance: ${relevance})\n${r.document.content}`;
       }).join('\n\n')
     : '';
 
