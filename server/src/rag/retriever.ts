@@ -4,7 +4,6 @@ import type { DataSource, SearchResult } from '../types/index.js';
 
 interface RetrievalOptions {
   limit?: number;
-  threshold?: number;
   sources?: DataSource[];
 }
 
@@ -164,16 +163,18 @@ export async function retrieve(
   query: string,
   options: RetrievalOptions = {},
 ): Promise<SearchResult[]> {
-  const { limit = 5, threshold = 0.3, sources } = options;
+  const { limit = 5, sources } = options;
+  // Use a low threshold for semantic search — let RRF decide what's relevant
+  const semanticThreshold = 0.15;
   const queryTerms = extractQueryTerms(query);
   const temporal = detectTemporalIntent(query);
   const sourceHint = detectSourceHint(query);
 
   // Run all search signals in parallel
   const [semanticResults, keywordResults, temporalResults] = await Promise.all([
-    // 1. Semantic search
+    // 1. Semantic search (low threshold — RRF will rank appropriately)
     embedText(query).then(embedding =>
-      searchSimilar(embedding, { limit: limit * 2, threshold, sources })
+      searchSimilar(embedding, { limit: limit * 3, threshold: semanticThreshold, sources })
     ),
 
     // 2. Keyword search (only if we have meaningful terms)

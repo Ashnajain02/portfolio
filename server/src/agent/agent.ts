@@ -7,7 +7,8 @@ import { retrieve } from '../rag/retriever.js';
 import { getContextMessages, addMessage } from './memory.js';
 import type { StreamEvent } from '../types/index.js';
 
-const MIN_RAG_SCORE = 0.3;
+// Minimum score AFTER RRF fusion — applied to final merged results, not individual signals
+const MIN_FINAL_SCORE = 0.005;
 
 function getSystemPrompt(timezone?: string, ragContext?: string): string {
   const tz = timezone || 'UTC';
@@ -65,7 +66,6 @@ export async function runAgent(
   // Step 1: Pre-fetch RAG — search ALL embedded sources
   const ragResults = await retrieve(userMessage, {
     limit: 5,
-    threshold: MIN_RAG_SCORE,
   });
 
   // Build RAG context string for the system prompt
@@ -78,10 +78,9 @@ export async function runAgent(
       }).join('\n\n')
     : '';
 
-  // Only attribute sources from high-confidence RAG results (top 2 by score)
-  const topResults = [...ragResults].sort((a, b) => b.score - a.score).slice(0, 2);
-  for (const r of topResults) {
-    if (r.score >= 0.4) sources.add(r.document.source);
+  // Attribute sources from RAG results that made it through fusion
+  for (const r of ragResults.slice(0, 2)) {
+    if (r.score >= MIN_FINAL_SCORE) sources.add(r.document.source);
   }
 
   // Build RAG summary for planner (shorter than full context)
