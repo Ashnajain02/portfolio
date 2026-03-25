@@ -89,14 +89,28 @@ export async function runAgent(
     if (r.score >= MIN_FINAL_SCORE) sources.add(r.document.source);
   }
 
-  // Build RAG summary for planner (shorter than full context)
-  const ragSummary = ragResults.length > 0
-    ? ragResults.map(r => `[${r.document.source}] ${r.document.content.slice(0, 150)}`).join('\n')
-    : '';
+  // Step 2: Decide if planner is needed
+  // Skip planner (saves ~500-1000ms) when RAG is confident and no live-data signals
+  const LIVE_DATA_PATTERN = /\b(journal|mood|streak|weather|song|commit|github|repo|readme|code|coding|push|last time|this week|this month|currently|recently|latest)\b/i;
+  const hasHighConfidenceRAG = ragResults.length > 0 && ragResults[0].score >= 0.012;
+  const needsLiveData = LIVE_DATA_PATTERN.test(userMessage);
 
-  // Step 2: Plan — planner decides if tools are needed
-  const plan = await planQuery(userMessage, ragSummary);
-  onStream({ type: 'plan', data: plan });
+  let tools: ReturnType<typeof toolRegistry.getOpenAITools> = [];
+
+  if (hasHighConfidenceRAG && !needsLiveData) {
+    onStream({ type: 'plan', data: { tools: [], reasoning: 'RAG confident, skipping planner' } });
+  } else {
+    const ragSummary = ragResults.length > 0
+      ? ragResults.map(r => `[${r.document.source}] ${r.document.content.slice(0, 150)}`).join('\n')
+      : '';
+    const plan = await planQuery(userMessage, ragSummary);
+    onStream({ type: 'plan', data: plan });
+
+    if (plan.tools.length > 0) {
+      const allTools = toolRegistry.getOpenAITools();
+      tools = allTools.filter(t => plan.tools.includes(t.function.name));
+    }
+  }
 
   // Step 3: Build LLM messages with RAG baked into system prompt
   const contextMessages = getContextMessages(sessionId);
@@ -108,12 +122,6 @@ export async function runAgent(
       content: m.content,
     })),
   ];
-
-  // Only include tools the planner selected (or none if RAG is sufficient)
-  const allTools = toolRegistry.getOpenAITools();
-  const tools = plan.tools.length > 0
-    ? allTools.filter(t => plan.tools.includes(t.function.name))
-    : [];
 
   // Step 4: LLM call with streaming + optional tool loop
   let iterations = 0;
