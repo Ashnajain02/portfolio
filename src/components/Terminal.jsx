@@ -12,6 +12,7 @@ const WELCOME_LINES = [
   { type: 'source', text: 'try: "what AI tool did you review that helps with images?"' },
   { type: 'source', text: '     "how many journal entries have I written this month?"' },
   { type: 'source', text: '     "what is twix and why did you build it?"' },
+  { type: 'source', text: '     "tell me about this website"' },
   { type: 'system', text: '' },
 ]
 
